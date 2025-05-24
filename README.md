@@ -722,9 +722,56 @@ Here are recommended VM configurations for different practice scenarios:
     * **CPU:** 14 Cores (pfSense: 2, Kali: 4, Metasploitable 3 Win: 4, Metasploitable 3 Ubuntu: 4\)  
     * **RAM:** 24 GiB (pfSense: 4, Kali: 8, Metasploitable 3 Win: 6, Metasploitable 3 Ubuntu: 6\)  
     * **Disk Space:** 310 GiB (pfSense: 50, Kali: 100, Metasploitable 3 Win: 80, Metasploitable 3 Ubuntu: 80\)  
-  * **Purpose:** This setup allows you to practice network reconnaissance, vulnerability scanning, and exploitation against diverse Windows and Linux targets within your segmented LAN, all controlled by pfSense.  
-* **Web Application Security Practice:**  
-  * **VMs to run:** pfSense, Kali Linux, Docker Host VM (ensure OWASP Juice Shop, DVWA, and WebGoat containers are running on this host).  
+  * **Purpose:** This setup allows you to practice network reconnaissance, vulnerability scanning, and exploitation against diverse Windows and Linux targets within your segmented LAN, all controlled by pfSense.
+
+---
+
+## Web Application Security Practice Scenario
+
+**Purpose**: Practice OWASP Top 10 vulnerabilities on intentionally insecure web apps.
+**Active VMs**: `pfSense`, `Kali Linux`, `Docker Host VM` (Juice Shop, DVWA, WebGoat)
+
+```
++---------------------+
+|     Internet /      |
+|   Home Router (DHCP)|
++----------+----------+
+           |
+           | (Physical NIC / Bridge: br-wan)
+           |
++----------+----------+
+|   Arch Linux Host   |
+|     (KVM/Qemu)      |
++----------+----------+
+           |
+           | (Virtual Bridge: br-wan)
+           |
++----------+----------+
+|   pfSense Firewall  |
+| (Virtual Machine)   |
+|---------------------|
+| WAN Interface       |
+| (DHCP from Home Rtr)|
+| LAN Interface       |
+| DMZ Interface       |
++----------+----------+
+           |                         |
+           |                         |
+(Virtual Bridge: br-lan)   (Virtual Bridge: br-dmz)
+           |                         |
++----------+----------+   +----------+-----------+
+| Kali Linux         |   | Docker Host VM        |
+| (Attacker Machine) |   | (e.g., Ubuntu Server) |
+| (DHCP from pfSense)|   | (DHCP from pfSense)   |
++--------------------+   |                       |
+                         | +-------------------+ |
+                         | | OWASP Juice Shop  | |
+                         | | DVWA              | |
+                         | | WebGoat           | |
+                         | +-------------------+ |
+                         +-----------------------+
+```
+
   * **Total Resources for this Scenario:**  
     * **CPU:** 8 Cores (pfSense: 2, Kali: 4, Docker Host: 2\)  
     * **RAM:** 16 GiB (pfSense: 4, Kali: 8, Docker Host: 4\)  
