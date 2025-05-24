@@ -91,21 +91,23 @@ Nested virtualization allows you to run a hypervisor *inside* one of your virtua
 
 The cornerstone of your secure and effective lab is meticulous network segmentation, with pfSense acting as your central router and firewall. You will create distinct virtual network bridges on your Arch Linux host, and then connect pfSense's virtual network interfaces to these bridges.  
 **Network Diagram Reference:**  
-                                     \+---------------------+  
+
+```plaintext
+                                     +---------------------+  
                                      |     Internet /      |  
                                      |   Home Router (DHCP)|  
-                                     \+----------+----------+  
+                                     +----------+----------+  
                                                 |  
                                                 | (Physical NIC / Bridge: br-wan)  
                                                 |  
-                                     \+----------+----------+  
+                                     +----------+----------+  
                                      |   Arch Linux Host   |  
                                      |     (KVM/Qemu)      |  
-                                     \+----------+----------+  
+                                     +----------+----------+  
                                                 |  
                                                 | (Virtual Bridge: br-wan)  
                                                 |  
-                                     \+----------+----------+  
+                                     +----------+----------+  
                                      |   pfSense Firewall  |  
                                      | (Virtual Machine)   |  
                                      |---------------------|  
@@ -114,51 +116,50 @@ The cornerstone of your secure and effective lab is meticulous network segmentat
                                      | LAN Interface       |  
                                      | DMZ Interface       |  
                                      | MAL Int             |  
-                                     \+----------+----------+  
+                                     +----------+----------+  
                                                 |  
-          \+-------------------------------------+-------------------------------------+  
+          +-------------------------------------+-------------------------------------+  
           |                                     |                                     |  
           | (Virtual Bridge: br-lan)            | (Virtual Bridge: br-dmz)            |  
           |                                     |                                     |  
-\+---------+-------------------------+ \+-----------+-----------------------+ \+-----------+-----------------------+  
++---------+-------------------------+ +-----------+-----------------------+ +-----------+-----------------------+  
 |           LAN Network             | |           DMZ Network             | |     MAL Network                   |  
 |         (10.0.0.0/24)             | |        (172.16.0.0/24)            | |       (192.168.100.0/24)          |  
-\+---------+-------------------------+ \+-----------+-----------------------+ \+-----------+-----------------------+  
++---------+-------------------------+ +-----------+-----------------------+ +-----------+-----------------------+  
           |                                     |                                     |  
           |                                     |                                     |  
-\+---------+----------+              \+-----------+-----------+             \+-----------------------------------+  
-| Kali Linux         |              | Docker Host VM        |             | \+-----------+-----------+         |  
++---------+----------+              +-----------+-----------+             +-----------------------------------+  
+| Kali Linux         |              | Docker Host VM        |             | +-----------+-----------+         |  
 | (Attacker Machine) |              | (e.g., Ubuntu Server) |             | | REMnux VM (Linux)     |         |  
-\+--------------------+              |                       |             | | (Docker Container Host)|         |  
-          |                         |  \+-----------------+  |             | \+-----------------------+         |  
-          |                         |  | OWASP Juice Shop|  |             | |  \+-----------------+  |         |  
++--------------------+              |                       |             | | (Docker Container Host)|         |  
+          |                         |  +-----------------+  |             | +-----------------------+         |  
+          |                         |  | OWASP Juice Shop|  |             | |  +-----------------+  |         |  
           |                         |  | DVWA            |  |             | |  | Malware Samples |  |         |  
-          |                         |  | WebGoat         |  |             | |  | Exploit Code    |  |         |  
-          |                         |  \+-----------------+  |             | |  \+-----------------+  |         |  
-\+--------------------+              \+-----------------------+             | \+-----------------------+         |  
-| Windows Server 2019|                                                    |                                   |  
-| (Domain Controller)|                                                    | \+-----------------------+         |  
-| (10.0.0.10 \- Static)|                                                    | | FlareVM (Windows)     |         |  
-\+--------------------+                                                    | | (Malware Analysis)    |         |  
-          | (Active Directory Domain: pentestlab.local)                   | | (DHCP from pfSense)   |         |  
-          |                                                               | \+-----------------------+         |  
-\+--------------------+                                                    \+-----------------------------------+  
-| Windows 10 Clients |  
-| (Domain-joined)    |  
++--------------------+              |  | WebGoat         |  |             | |  | Exploit Code    |  |         |  
+| Windows Server 2019|              |  +-----------------+  |             | |  +-----------------+  |         |  
+| (Domain Controller)|              +-----------------------+             | +-----------------------+         |  
+| (10.0.0.10 - Static)|                                                    |                                   |  
++--------------------+                                                    | +-----------------------+         |  
+          | (Active Directory Domain: pentestlab.local)                   | | FlareVM (Windows)     |         |  
+          |                                                               | | (Malware Analysis)    |         |  
++--------------------+                                                    | | (DHCP from pfSense)   |         |  
+| Windows 10 Clients |                                                    | +-----------------------+         |  
+| (Domain-joined)    |                                                    +-----------------------------------+  
 | (DHCP from pfSense)|  
-\+--------------------+  
++--------------------+  
           |  
-\+--------------------+  
++--------------------+  
 | Metasploitable 3   |  
 | (Windows Build)    |  
 | (DHCP from pfSense)|  
-\+--------------------+  
++--------------------+  
           |  
-\+--------------------+  
++--------------------+  
 | Metasploitable 3   |  
 | (Ubuntu Build)     |  
 | (DHCP from pfSense)|  
-\+--------------------+
++--------------------+  
+```
 
 ### **2.1. Create Virtual Bridges on Arch Linux Host**
 
