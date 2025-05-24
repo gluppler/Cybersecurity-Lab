@@ -716,8 +716,50 @@ To make the most of your lab resources and focus your practice, it's highly reco
 Your host system has **32GB RAM**, **32GB Swap**, and **1TB dedicated storage**. The resource totals below represent the *combined* requirements for the VMs running in each scenario.  
 Here are recommended VM configurations for different practice scenarios:
 
-* **Network Security Practice:**  
-  * **VMs to run:** pfSense, Kali Linux, Metasploitable 3 (Windows Build), Metasploitable 3 (Ubuntu Build).  
+---
+
+## Network Security Practice Scenario
+
+**Purpose**: Reconnaissance, enumeration, and exploitation against diverse Linux and Windows targets.
+**Active VMs**: `pfSense`, `Kali Linux`, `Metasploitable 3 (Windows)`, `Metasploitable 3 (Ubuntu)`
+
+```
++---------------------+
+|     Internet /      |
+|   Home Router (DHCP)|
++----------+----------+
+           |
+           | (Physical NIC / Bridge: br-wan)
+           |
++----------+----------+
+|   Arch Linux Host   |
+|     (KVM/Qemu)      |
++----------+----------+
+           |
+           | (Virtual Bridge: br-wan)
+           |
++----------+----------+
+|   pfSense Firewall  |
+| (Virtual Machine)   |
+|---------------------|
+| WAN Interface       |
+| (DHCP from Home Rtr)|
+| LAN Interface       |
++----------+----------+
+           |
+           | (Virtual Bridge: br-lan)
+           |
++-----------------------------------------------------------------------------------+
+|                           LAN Network (10.0.0.0/24)                               |
++-----------------------------------------------------------------------------------+
+           |                           |                           |
++----------+----------+  +------------+------------+  +-----------+-----------+
+| Kali Linux         |  | Metasploitable 3        |  | Metasploitable 3     |
+| (Attacker Machine) |  | (Windows Build)         |  | (Ubuntu Build)       |
+| (DHCP from pfSense)|  | (DHCP from pfSense)     |  | (DHCP from pfSense)  |
++--------------------+  +-------------------------+  +----------------------+
+```
+
   * **Total Resources for this Scenario:**  
     * **CPU:** 14 Cores (pfSense: 2, Kali: 4, Metasploitable 3 Win: 4, Metasploitable 3 Ubuntu: 4\)  
     * **RAM:** 24 GiB (pfSense: 4, Kali: 8, Metasploitable 3 Win: 6, Metasploitable 3 Ubuntu: 6\)  
