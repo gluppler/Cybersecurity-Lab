@@ -736,9 +736,50 @@ Here are recommended VM configurations for different practice scenarios:
     * **CPU:** 14 Cores (pfSense: 2, Kali: 4, Windows Server DC: 4, Windows 10 Client x2: 2+2=4)  
     * **RAM:** 32 GiB (pfSense: 4, Kali: 8, Windows Server DC: 8, Windows 10 Client x2: 6+6=12)  
     * **Disk Space:** 410 GiB (pfSense: 50, Kali: 100, Windows Server DC: 100, Windows 10 Client x2: 80+80=160)  
-  * **Purpose:** This setup provides a realistic Active Directory environment for practicing domain enumeration, privilege escalation, and lateral movement techniques within a Windows enterprise simulation.  
-* **MAL Network / Exploit Development Practice:**  
-  * **VMs to run:** pfSense (optional, only if you need internet access for downloading samples or updating analysis tools), REMnux VM, FlareVM.  
+  * **Purpose:** This setup provides a realistic Active Directory environment for practicing domain enumeration, privilege escalation, and lateral movement techniques within a Windows enterprise simulation.
+
+## MAL Network / Exploit Development Practice Scenario
+
+**Purpose**: Isolated environment for malware analysis and exploit development.
+**Active VMs**: `pfSense` (optional), `REMnux VM`, `FlareVM`
+
+```
++---------------------+
+|     Internet /      |
+|   Home Router (DHCP)|
++----------+----------+
+           |
+           | (Physical NIC / Bridge: br-wan)
+           |
++----------+----------+
+|   Arch Linux Host   |
+|     (KVM/Qemu)      |
++----------+----------+
+           |
+           | (Virtual Bridge: br-wan)
+           |
++----------+----------+
+|   pfSense Firewall  |
+| (Virtual Machine)   |
+|---------------------|
+| WAN Interface       |
+| (DHCP from Home Rtr)|
+| MAL Int             |
++----------+----------+
+           |
+           | (Virtual Bridge: br-isolated)
+           |
++-----------------------------------------------------------------------------------+
+|                           MAL Network (192.168.100.0/24)                          |
++-----------------------------------------------------------------------------------+
+           |                                     |
++----------+----------+             +------------+------------+
+| REMnux VM (Linux)  |             | FlareVM (Windows)      |
+| (Docker Container  |             | (Malware Analysis)     |
+| Host)              |             | (DHCP from pfSense)    |
+| (DHCP from pfSense)|             +------------------------+
++--------------------+
+```
   * **Total Resources for this Scenario:**  
     * **CPU:** 8 Cores (pfSense: 2, REMnux: 2, FlareVM: 4\)  
     * **RAM:** 16 GiB (pfSense: 4, REMnux: 4, FlareVM: 8\)  
