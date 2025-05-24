@@ -729,14 +729,59 @@ Here are recommended VM configurations for different practice scenarios:
     * **CPU:** 8 Cores (pfSense: 2, Kali: 4, Docker Host: 2\)  
     * **RAM:** 16 GiB (pfSense: 4, Kali: 8, Docker Host: 4\)  
     * **Disk Space:** 200 GiB (pfSense: 50, Kali: 100, Docker Host: 50\)  
-  * **Purpose:** This configuration provides your attacker machine and the necessary web application targets in the DMZ, enabling you to focus on web vulnerability exploitation.  
-* **Active Directory Security Practice:**  
-  * **VMs to run:** pfSense, Kali Linux, Windows Server 2019 (Domain Controller), Windows 10 Client(s) (assuming 2 clients as recommended).  
+  * **Purpose:** This configuration provides your attacker machine and the necessary web application targets in the DMZ, enabling you to focus on web vulnerability exploitation.
+
+---
+
+## Active Directory Security Practice Scenario
+
+**Purpose**: Simulate an enterprise Active Directory environment.
+**Active VMs**: `pfSense`, `Kali Linux`, `Windows Server 2019`, `Windows 10 Client(s)`
+
+```
++---------------------+
+|     Internet /      |
+|   Home Router (DHCP)|
++----------+----------+
+           |
+           | (Physical NIC / Bridge: br-wan)
+           |
++----------+----------+
+|   Arch Linux Host   |
+|     (KVM/Qemu)      |
++----------+----------+
+           |
+           | (Virtual Bridge: br-wan)
+           |
++----------+----------+
+|   pfSense Firewall  |
+| (Virtual Machine)   |
+|---------------------|
+| WAN Interface       |
+| (DHCP from Home Rtr)|
+| LAN Interface       |
++----------+----------+
+           |
+           | (Virtual Bridge: br-lan)
+           |
++-----------------------------------------------------------------------------------+
+|                           LAN Network (10.0.0.0/24)                               |
++-----------------------------------------------------------------------------------+
+           |                           |                           |
++----------+----------+  +------------+------------+  +-----------+-----------+
+| Kali Linux         |  | Windows Server 2019     |  | Windows 10 Clients   |
+| (Attacker Machine) |  | (Domain Controller)     |  | (Domain-joined)      |
+| (DHCP from pfSense)|  | (10.0.0.10 - Static IP) |  | (DHCP from pfSense)  |
++--------------------+  +-------------------------+  +----------------------+
+```
+
   * **Total Resources for this Scenario:**  
     * **CPU:** 14 Cores (pfSense: 2, Kali: 4, Windows Server DC: 4, Windows 10 Client x2: 2+2=4)  
     * **RAM:** 32 GiB (pfSense: 4, Kali: 8, Windows Server DC: 8, Windows 10 Client x2: 6+6=12)  
     * **Disk Space:** 410 GiB (pfSense: 50, Kali: 100, Windows Server DC: 100, Windows 10 Client x2: 80+80=160)  
   * **Purpose:** This setup provides a realistic Active Directory environment for practicing domain enumeration, privilege escalation, and lateral movement techniques within a Windows enterprise simulation.
+
+---
 
 ## MAL Network / Exploit Development Practice Scenario
 
@@ -785,6 +830,8 @@ Here are recommended VM configurations for different practice scenarios:
     * **RAM:** 16 GiB (pfSense: 4, REMnux: 4, FlareVM: 8\)  
     * **Disk Space:** 370 GiB (pfSense: 50, REMnux: 120, FlareVM: 200\)  
   * **Purpose:** This highly isolated setup provides dedicated Linux and Windows environments for safely analyzing malware, reverse engineering binaries, and developing exploits without risk to your host or other lab segments.
+
+---
 
 ## **5\. Key Lab Management Practices**
 
