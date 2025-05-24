@@ -115,7 +115,7 @@ The cornerstone of your secure and effective lab is meticulous network segmentat
                                      | (DHCP from Home Rtr)|  
                                      | LAN Interface       |  
                                      | DMZ Interface       |  
-                                     | MAL Int             |  
+                                     | MAL Interface       |  
                                      +----------+----------+  
                                                 |  
           +-------------------------------------+-------------------------------------+  
