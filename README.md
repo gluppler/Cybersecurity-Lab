@@ -1,969 +1,3026 @@
-# **Cybersecurity Lab Setup Guide: Building Your Virtual Pentesting & Red Teaming Environment**
+# **Cybersecurity Lab: AI-Powered Red Teaming & Penetration Testing Environment**
 
-This guide provides a highly detailed, step-by-step walkthrough for establishing a robust and segmented virtual cybersecurity lab using KVM/Qemu on your Arch Linux host. It's designed to be a comprehensive and actionable resource, ensuring you can perfectly set up environments for Web Application Security, Network Security, and Active Directory Security, complete with a pfSense firewall and dedicated analysis zones.  
-**Lab Goals:**
+**Virtualized Cybersecurity Lab for Red Teaming, Web Application Security, Network Security, and Active Directory Penetration Testing**
 
-* **Web Application Security:** Hands-on practice with the OWASP Top 10 vulnerabilities using intentionally insecure web applications.  
-* **Network Security:** Develop skills in reconnaissance, enumeration, exploitation, and post-exploitation on diverse vulnerable Linux and Windows targets.  
-* **Active Directory Security:** Simulate enterprise environments to master privilege escalation, lateral movement, and persistence techniques within a Windows domain.  
-* **MAL network:** Provide a secure and isolated environment for malware analysis, reverse engineering, and exploit development.
+[![QEMU/KVM](https://img.shields.io/badge/Virtualization-QEMU%2FKVM-blue.svg)](https://www.qemu.org/)
+[![Kali Linux](https://img.shields.io/badge/VM%20OS-Kali%20Linux-557C94.svg)](https://www.kali.org/)
+[![AI Tools](https://img.shields.io/badge/AI%20Tools-Villager%20%26%20HexStrike-green.svg)](https://github.com/Yenn503/villager-ai-hexstrike-integration)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Your Host System Resources:**
+---
 
-* **Operating System:** Arch Linux  
-* **Virtualization:** KVM/Qemu  
-* **Memory:** 32GB RAM \+ 32GB Swap  
-* **Storage:** 1TB dedicated for the lab
+## **Overview**
 
-## **1\. Prerequisites: Prepare Your Arch Linux Host**
+This comprehensive guide details the setup and configuration of a professional-grade cybersecurity lab environment using **QEMU/KVM** virtualization. The lab is specifically designed for **red teaming** and **penetration testing** across three primary domains:
 
-Before you begin creating any virtual machines, it is crucial to ensure your Arch Linux host is correctly configured and optimized for KVM/Qemu virtualization.
+- **🌐 Web Application Security** - OWASP Top 10, API security, modern web vulnerabilities
+- **🔗 Network Security** - Network reconnaissance, exploitation, lateral movement
+- **🏢 Active Directory Security** - Domain enumeration, privilege escalation, persistence
+
+The lab leverages **AI-powered tools** including **villager-ai-hexstrike-integration** and **pimpmykali** running on **Kali Linux VMs** to automate and enhance penetration testing workflows.
+
+---
+
+## **System Architecture**
+
+### **Host System Requirements**
+
+| Component | Minimum Specification | Recommended |
+|-----------|---------------------|-------------|
+| **Host OS** | Linux (Arch, Ubuntu, Debian, Fedora, etc.) | Any modern Linux distribution |
+| **Virtualization** | QEMU/KVM with libvirt | QEMU/KVM with libvirt |
+| **CPU** | 4 Cores (with VT-x/AMD-V) | 8+ Cores (Intel/AMD) |
+| **RAM** | 16GB | 32GB+ (adjust based on your available resources) |
+| **Storage** | 500GB free space | 1TB+ free space (allocate based on your needs) |
+| **GPU** | Any | NVIDIA (optional, for GPU-accelerated password cracking) |
+
+**Note**: Resource allocations in this guide are recommendations. Adjust VM resources (CPU, RAM, disk) based on your available hardware. You can run fewer VMs simultaneously or reduce resource allocations per VM if needed.
+
+### **Lab Components**
+
+This lab consists of three core components:
+
+1. **Kali Linux VM** - Attacker machine with AI tools (Villager AI + HexStrike, WebSploit for web app testing, PimpMyKali)
+2. **Metasploitable VMs** - Intentionally vulnerable Linux and Windows targets
+3. **Windows Active Directory Environment** - Domain Controller and client machines
+
+### **Lab Goals**
+
+- **Web Application Security**: Hands-on practice with OWASP Top 10 vulnerabilities using WebSploit platform and intentionally insecure web applications on Metasploitable VMs
+- **Network Security**: Develop skills in reconnaissance, enumeration, exploitation, and post-exploitation on diverse vulnerable Linux and Windows targets
+- **Active Directory Security**: Simulate enterprise environments to master privilege escalation, lateral movement, and persistence techniques within a Windows domain
+- **AI-Enhanced Testing**: Leverage AI tools for automated vulnerability discovery, exploit generation, and intelligent attack chain development
+
+---
+
+## **Network Topology**
+
+### **Lab Architecture**
+
+This lab uses a dual-segment network architecture with pfSense firewall separating attacker and target networks. The lab is organized into five main categories:
+
+```mermaid
+graph TB
+    subgraph Lab["br-lab Network<br/>192.168.100.0/24"]
+        K[Kali Linux VM<br/>192.168.100.10<br/>AI Tools: Villager + HexStrike<br/>WebSploit: Web App Testing<br/>PimpMyKali: Optimization<br/>Penetration Tools Suite]
+        
+        NW[Metasploitable 3<br/>Windows: 192.168.200.20<br/>Ubuntu: 192.168.200.21]
+        
+        AD[Windows Server 2019 DC<br/>192.168.200.30<br/>Windows 10 Clients: 192.168.200.31-32<br/>Domain: pentestlab.local]
+        
+        WEB[WebSploit Platform<br/>Running on Kali VM<br/>Docker Containers]
+    end
+    
+    K -->|Attacks| WEB
+    K -->|Attacks| NW
+    K -->|Attacks| AD
+    
+    style K fill:#557C94,stroke:#3d5a6b,stroke-width:3px,color:#fff
+    style NW fill:#ff6b35,stroke:#cc5529,stroke-width:2px,color:#fff
+    style AD fill:#0078d4,stroke:#005a9e,stroke-width:2px,color:#fff
+    style WEB fill:#e67e22,stroke:#d35400,stroke-width:2px,color:#fff
+    style Lab fill:#f5f5f5,stroke:#333,stroke-width:2px
+```
+
+**Lab Components**:
+
+- **KALI** - Centralized attacker machine with all tools:
+  - AI Tools: Villager AI Framework + HexStrike AI MCP (150+ tools)
+  - Web Application Security: WebSploit platform (Docker containers)
+  - Kali Optimization: PimpMyKali (tool fixes & optimization)
+  - Penetration Tools: Web, Network, and AD security tools
+
+- **NETWORK** - Metasploitable VMs for network security practice:
+  - Metasploitable 3 Windows Build (192.168.200.20)
+  - Metasploitable 3 Ubuntu Build (192.168.200.21)
+
+- **AD** - Windows Active Directory environment for domain security testing:
+  - Windows Server 2019 Domain Controller (192.168.200.30)
+  - Windows 10 Clients (192.168.200.31-32)
+  - Domain: pentestlab.local
+
+- **WEB** - WebSploit platform running on Kali VM for web application security testing
+
+**Network Configuration**:
+- ✅ **Single Isolated Network**: `br-lab` (192.168.100.0/24)
+- ✅ **No Firewall/Router**: Simplified setup, no pfSense needed
+- ✅ **Complete Isolation**: Safe testing environment separated from host
+- ✅ **VM Communication**: All VMs can communicate with each other on the lab network
+
+---
+
+## **1. Prerequisites: Host System Configuration**
 
 ### **1.1. Verify Hardware Virtualization Support**
 
-Hardware virtualization extensions (Intel VT-x or AMD-V) are essential for KVM to function efficiently, allowing virtual machines to execute instructions directly on the CPU with near-native performance. These extensions must be supported by your CPU and enabled in your system's BIOS/UEFI settings.
+Hardware virtualization extensions (Intel VT-x or AMD-V) are essential for KVM to function efficiently.
 
-* **Check CPU Support:** Open a terminal and run:  
-  egrep \-c '(vmx|svm)' /proc/cpuinfo
+```bash
+# Check CPU virtualization support
+# This command counts how many CPU cores support virtualization
+egrep -c '(vmx|svm)' /proc/cpuinfo
 
-  * **Expected Output:** A number greater than 0 (e.g., 4, 8, 16). This indicates that your CPU supports virtualization.  
-  * **Troubleshooting:** If the output is 0 or blank, hardware virtualization is either not supported by your CPU or, more commonly, not enabled in your system's BIOS/UEFI settings. You **must** reboot your system, enter your BIOS/UEFI settings (often by pressing Del, F2, F10, or F12 during boot), and enable options such as "Intel Virtualization Technology," "Intel VT-x," "AMD-V," or "SVM Mode." Save changes and reboot. Without this, KVM will not function correctly.
+# Alternative: More detailed check
+grep -E '(vmx|svm)' /proc/cpuinfo | head -1
 
-### **1.2. Install KVM/Qemu and Management Tools**
+# Check if virtualization is enabled in kernel
+# For Intel: should show "vmx" flag
+# For AMD: should show "svm" flag
+```
 
-Install the core virtualization components and virt-manager, a graphical user interface that simplifies VM creation and management, which is highly recommended for ease of use.  
-sudo pacman \-S qemu virt-manager virt-viewer dnsmasq vde2 bridge-utils openbsd-netcat
+**Expected Output**:
+- A number greater than 0 (e.g., 4, 8, 16) - indicates number of CPU cores with virtualization support
+- Example: `8` means 8 cores support virtualization
 
-* **Explanation of Packages:**  
-  * qemu: The core emulator and virtualizer.  
-  * virt-manager: A powerful graphical tool for managing KVM/Qemu VMs.  
-  * virt-viewer: A simple client for viewing VM consoles.  
-  * dnsmasq: Often used by libvirt for DHCP and DNS services on default virtual networks (though pfSense will handle DHCP for your custom networks).  
-  * vde2, bridge-utils, openbsd-netcat: Utilities for network bridging and other networking functionalities.
+**Verification**:
+```bash
+# Verify the output
+VTX_COUNT=$(egrep -c '(vmx|svm)' /proc/cpuinfo)
+if [ "$VTX_COUNT" -gt 0 ]; then
+    echo "✓ Virtualization support detected: $VTX_COUNT cores"
+else
+    echo "✗ Virtualization not detected. Enable in BIOS/UEFI."
+    exit 1
+fi
+```
+
+**Troubleshooting**:
+- If output is 0: Enable "Intel Virtualization Technology" (VT-x) or "AMD-V" (SVM) in BIOS/UEFI settings
+- Reboot after enabling in BIOS
+- Some systems call it "Virtualization Technology", "Intel VT-x", "AMD-V", or "SVM Mode"
+
+### **1.2. Install QEMU/KVM and Management Tools**
+
+#### **For Arch Linux**:
+```bash
+# Update package database first
+sudo pacman -Sy
+
+# Install QEMU/KVM and virtualization tools
+sudo pacman -S --needed qemu virt-manager virt-viewer dnsmasq vde2 bridge-utils openbsd-netcat ebtables iptables
+
+# Verify installation
+which qemu-system-x86_64
+which virt-manager
+which virsh
+```
+
+**Verification**:
+```bash
+# Check if packages are installed
+pacman -Q qemu virt-manager libvirt 2>/dev/null && echo "✓ Packages installed" || echo "✗ Installation failed"
+```
+
+#### **For Ubuntu/Debian**:
+```bash
+# Update package lists
+sudo apt update
+
+# Install QEMU/KVM and virtualization tools
+sudo apt install -y qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager virt-viewer dnsmasq
+
+# Verify installation
+which qemu-system-x86_64
+which virt-manager
+which virsh
+```
+
+**Verification**:
+```bash
+# Check if packages are installed
+dpkg -l | grep -E '(qemu|virt-manager|libvirt)' && echo "✓ Packages installed" || echo "✗ Installation failed"
+```
+
+#### **For Fedora/RHEL/CentOS**:
+```bash
+# Install QEMU/KVM and virtualization tools
+sudo dnf install -y qemu-kvm virt-manager virt-viewer libvirt dnsmasq bridge-utils
+
+# Verify installation
+which qemu-system-x86_64
+which virt-manager
+which virsh
+```
+
+**Package Explanation**:
+- `qemu` / `qemu-kvm`: Core emulator and virtualizer
+- `qemu-utils`: QEMU utilities (qemu-img, etc.)
+- `virt-manager`: Graphical VM management tool
+- `virt-viewer`: VM console viewer
+- `libvirt-daemon-system` / `libvirt`: libvirt daemon and libraries
+- `libvirt-clients`: Command-line tools (virsh, virt-install)
+- `dnsmasq`: DHCP/DNS services for virtual networks
+- `bridge-utils`: Network bridge utilities (brctl command)
+- `ebtables`, `iptables`: Firewall and NAT rules (usually pre-installed)
 
 ### **1.3. Configure User Permissions**
 
-To manage virtual machines and interact with the libvirt daemon without needing sudo for every command, add your user account to the libvirt and kvm groups. This adheres to the principle of least privilege, enhancing security.  
-sudo usermod \-aG libvirt,kvm $(whoami)
+```bash
+# Get current username (more reliable than $(whoami) in some contexts)
+CURRENT_USER="${USER:-$(whoami)}"
 
-* **Crucial Step:** For these group changes to take effect, you **must log out of your Arch Linux session and log back in (or reboot)**. If you skip this, virt-manager might not connect to libvirtd or you might encounter permission errors.
+# Add user to virtualization groups
+# libvirt: Required for managing VMs
+# kvm: Required for KVM access
+sudo usermod -aG libvirt,kvm "$CURRENT_USER"
+
+# Verify groups were added (will show after logout/login)
+groups "$CURRENT_USER" | grep -E '(libvirt|kvm)' && echo "✓ Groups added" || echo "✗ Groups not found (will appear after logout/login)"
+
+# Note: Group changes require logout/login to take effect
+# Alternative: Use newgrp to apply changes in current session (temporary)
+# newgrp libvirt
+```
+
+**Important**: You **must** log out and log back in (or reboot) for group changes to take effect. The `newgrp` command provides temporary access but is not persistent.
+
+**Verification After Logout/Login**:
+```bash
+# After logging back in, verify groups
+groups | grep -E '(libvirt|kvm)' && echo "✓ User has virtualization groups" || echo "✗ Groups not active - logout/login required"
+
+# Test libvirt access (should work without sudo)
+virsh list --all 2>&1 | head -1
+# Should NOT show "permission denied" error
+```
 
 ### **1.4. Start and Enable Libvirt Service**
 
-The libvirtd service is the daemon that manages KVM/Qemu virtual machines. It must be running and enabled to start automatically on boot for virt-manager and virsh commands to function correctly.  
-sudo systemctl enable \--now libvirtd
+```bash
+# Enable libvirt daemon to start on boot
+sudo systemctl enable libvirtd
 
-* **Verify Service Status:** Confirm that libvirtd is active and running:  
-  sudo systemctl status libvirtd
+# Start libvirt daemon immediately
+sudo systemctl start libvirtd
 
-  * **Expected Output:** Look for Active: active (running). If it's not running, check journalctl \-xe for error messages.  
-* **Verify KVM Modules:** Ensure the KVM kernel modules are loaded:  
-  lsmod | grep kvm
+# Verify service is running
+sudo systemctl status libvirtd --no-pager -l
 
-  * **Expected Output:** You should see kvm\_intel (for Intel CPUs) or kvm\_amd (for AMD CPUs) listed. If not, ensure hardware virtualization is enabled in BIOS/UEFI and try sudo modprobe kvm\_intel (or kvm\_amd).
-
-### **1.5. Disk Image Format (Qcow2)**
-
-When creating virtual machine disk images, qcow2 is the native and highly recommended format for KVM. virt-manager typically uses this by default, but it's good to be aware of its benefits.
-
-* **Key Benefits of qcow2:**  
-  * **Thin Provisioning:** Disk space is allocated on demand. The virtual disk file starts small and grows only as data is written by the VM, saving physical storage.  
-  * **Snapshots:** Essential for a pentesting lab\! qcow2 allows you to easily create and revert to previous states of your VMs, enabling quick resets of vulnerable targets.  
-  * **Cloning:** Efficiently create copies of existing VMs without duplicating the entire base image.
-
-### **1.6. Enable Nested Virtualization (Recommended)**
-
-Nested virtualization allows you to run a hypervisor *inside* one of your virtual machines (e.g., running Hyper-V within a Windows VM, or a nested KVM instance). While not strictly necessary for every VM in your lab, it provides maximum flexibility for advanced scenarios (e.g., running WSL2 or Docker Desktop on Windows VMs, or experimenting with nested hypervisors).
-
-* **For Intel CPUs:**  
-  echo "options kvm-intel nested=1" | sudo tee /etc/modprobe.d/kvm-intel.conf
-
-* **For AMD CPUs:**  
-  echo "options kvm-amd nested=1" | sudo tee /etc/modprobe.d/kvm-amd.conf
-
-* **Apply Changes:** For the changes to take effect, you need to unload and reload the KVM module. If you have any KVM VMs running, you **must shut them down first**.  
-  * **Option 1 (Recommended):** Reboot your Arch Linux host. This is the simplest and most reliable way to apply kernel module options.  
-  * **Option 2 (Without reboot, requires no KVM VMs running):**  
-    sudo modprobe \-r kvm\_intel \# (or kvm\_amd for AMD)  
-    sudo modprobe kvm\_intel nested=1 \# (or kvm\_amd nested=1 for AMD)
-
-## **2\. Network Setup: Building Your Lab Segments with pfSense**
-
-The cornerstone of your secure and effective lab is meticulous network segmentation, with pfSense acting as your central router and firewall. You will create distinct virtual network bridges on your Arch Linux host, and then connect pfSense's virtual network interfaces to these bridges.  
-**Network Diagram Reference:**  
-
-```plaintext
-                                     +---------------------+  
-                                     |     Internet /      |  
-                                     |   Home Router (DHCP)|  
-                                     +----------+----------+  
-                                                |  
-                                                | (Physical NIC / Bridge: br-wan)  
-                                                |  
-                                     +----------+----------+  
-                                     |   Arch Linux Host   |  
-                                     |     (KVM/Qemu)      |  
-                                     +----------+----------+  
-                                                |  
-                                                | (Virtual Bridge: br-wan)  
-                                                |  
-                                     +----------+----------+  
-                                     |   pfSense Firewall  |  
-                                     | (Virtual Machine)   |  
-                                     |---------------------|  
-                                     | WAN Interface       |  
-                                     | (DHCP from Home Rtr)|  
-                                     | LAN Interface       |  
-                                     | DMZ Interface       |  
-                                     | MAL Interface       |  
-                                     +----------+----------+  
-                                                |  
-          +-------------------------------------+-------------------------------------+  
-          |                                     |                                     |  
-          | (Virtual Bridge: br-lan)            | (Virtual Bridge: br-dmz)            |  
-          |                                     |                                     |  
-+---------+-------------------------+ +-----------+-----------------------+ +-----------+-----------------------+  
-|           LAN Network             | |           DMZ Network             | |     MAL Network                   |  
-|         (10.0.0.0/24)             | |        (172.16.0.0/24)            | |       (192.168.100.0/24)          |  
-+---------+-------------------------+ +-----------+-----------------------+ +-----------+-----------------------+  
-          |                                     |                                     |  
-          |                                     |                                     |  
-+---------+----------+              +-----------+-----------+             +-----------------------------------+  
-| Kali Linux         |              | Docker Host VM        |             | +-----------+-----------+         |  
-| (Attacker Machine) |              | (e.g., Ubuntu Server) |             | | REMnux VM (Linux)     |         |  
-+--------------------+              |                       |             | | (Docker Container Host)|         |  
-          |                         |  +-----------------+  |             | +-----------------------+         |  
-          |                         |  | OWASP Juice Shop|  |             | |  +-----------------+  |         |  
-          |                         |  | DVWA            |  |             | |  | Malware Samples |  |         |  
-+--------------------+              |  | WebGoat         |  |             | |  | Exploit Code    |  |         |  
-| Windows Server 2019|              |  +-----------------+  |             | |  +-----------------+  |         |  
-| (Domain Controller)|              +-----------------------+             | +-----------------------+         |  
-| (10.0.0.10 - Static)|                                                    |                                   |  
-+--------------------+                                                    | +-----------------------+         |  
-          | (Active Directory Domain: pentestlab.local)                   | | FlareVM (Windows)     |         |  
-          |                                                               | | (Malware Analysis)    |         |  
-+--------------------+                                                    | | (DHCP from pfSense)   |         |  
-| Windows 10 Clients |                                                    | +-----------------------+         |  
-| (Domain-joined)    |                                                    +-----------------------------------+  
-| (DHCP from pfSense)|  
-+--------------------+  
-          |  
-+--------------------+  
-| Metasploitable 3   |  
-| (Windows Build)    |  
-| (DHCP from pfSense)|  
-+--------------------+  
-          |  
-+--------------------+  
-| Metasploitable 3   |  
-| (Ubuntu Build)     |  
-| (DHCP from pfSense)|  
-+--------------------+  
+# Alternative: Check if service is active
+if systemctl is-active --quiet libvirtd; then
+    echo "✓ libvirtd is running"
+else
+    echo "✗ libvirtd is not running"
+    sudo systemctl start libvirtd
+fi
 ```
 
-### **2.1. Create Virtual Bridges on Arch Linux Host**
-
-You will create four distinct virtual bridges. The br-wan bridge will be a **physical bridge**, directly connecting to your host's physical network adapter. This allows pfSense to obtain an IP address from your home router, simulating internet access. The other bridges (br-lan, br-dmz, br-isolated) will be **isolated virtual networks**. VMs connected to these isolated bridges can only communicate with other VMs on the *same* bridge, or with pfSense, providing crucial security and containment for your lab environment.  
-We'll use systemd-networkd for configuring the br-wan bridge, as it's robust for physical network configurations. For the isolated virtual networks, libvirt's built-in network definitions are generally simpler to manage via virt-manager or virsh.  
-First, identify your physical network interface:  
-Open a terminal and run ip a. Look for your active Ethernet interface (e.g., enp0s31f6, eth0, eno1). Replace YOUR\_PHYSICAL\_NIC with its actual name in the steps below.
-
-#### **a. br-wan (WAN Interface \- Bridged to Physical NIC)**
-
-This bridge will connect pfSense's WAN interface to your physical home network, allowing it to get an IP from your home router (simulating internet access).
-
-1. **Create the bridge definition file (.netdev):**  
-   sudo tee /etc/systemd/network/10-br-wan.netdev \<\<EOF  
-   \[NetDev\]  
-   Name=br-wan  
-   Kind=bridge  
-   EOF
-
-2. **Configure your physical NIC to be part of the bridge (.network):**  
-   sudo tee /etc/systemd/network/20-br-wan-if.network \<\<EOF  
-   \[Match\]  
-   Name=YOUR\_PHYSICAL\_NIC \# \<--- IMPORTANT: REPLACE THIS with your actual physical NIC name\!  
-   \[Network\]  
-   Bridge=br-wan  
-   EOF
-
-3. **Restart systemd-networkd to apply changes:**  
-   sudo systemctl restart systemd-networkd
-
-   * **Troubleshooting br-wan:** If br-wan doesn't come up or your host loses network connectivity, double-check the YOUR\_PHYSICAL\_NIC name. Ensure no typos. Also, review sudo journalctl \-xe | grep systemd-networkd for specific errors. Sometimes, a full host reboot is needed for systemd-networkd changes to apply cleanly.  
-4. **Allow Qemu to use the bridge:** This step is crucial for KVM/Qemu to be able to attach VMs to this bridge.  
-   echo 'allow br-wan' | sudo tee /etc/qemu/bridge.conf
-
-   * **Troubleshooting qemu/bridge.conf:** If you get permission errors when trying to connect a VM to br-wan in virt-manager, ensure this file exists and has the correct content.
-
-#### **b. br-lan (LAN Network \- Isolated Virtual Network)**
-
-This bridge will host your internal lab network (10.0.0.0/24). VMs on this network will receive IPs from **pfSense's DHCP server**.
-
-1. **Create the libvirt network XML definition:**  
-   tee /tmp/br-lan.xml \<\<EOF  
-   \<network\>  
-     \<name\>br-lan\</name\>  
-     \<bridge name="br-lan"/\>  
-     \<forward mode='isolated'/\>  
-     \<ip address='10.0.0.1' prefix='24'\>  
-     \</ip\>  
-   \</network\>  
-   EOF
-
-2. **Define, start, and autostart the libvirt network:**  
-   virsh net-define /tmp/br-lan.xml  
-   virsh net-start br-lan  
-   virsh net-autostart br-lan
-
-   * **Troubleshooting libvirt networks:** If virsh net-define fails, check for XML syntax errors or if a network with the same name already exists. If virsh net-start fails, check sudo journalctl \-xe | grep libvirtd for errors.
-
-#### **c. br-dmz (DMZ Network \- Isolated Virtual Network)**
-
-This bridge will host your Demilitarized Zone (DMZ) network (172.16.0.0/24). VMs on this network will receive IPs from **pfSense's DHCP server**.
-
-1. **Create the libvirt network XML definition:**  
-   tee /tmp/br-dmz.xml \<\<EOF  
-   \<network\>  
-     \<name\>br-dmz\</name\>  
-     \<bridge name="br-dmz"/\>  
-     \<forward mode='isolated'/\>  
-     \<ip address='172.16.0.1' prefix='24'\>  
-     \</ip\>  
-   \</network\>  
-   EOF
-
-2. **Define, start, and autostart the libvirt network:**  
-   virsh net-define /tmp/br-dmz.xml  
-   virsh net-start br-dmz  
-   virsh net-autostart br-dmz
-
-#### **d. br-isolated (MAL Network \- Strictly Isolated Virtual Network)**
-
-This bridge will host your dedicated malware analysis/exploit development VMs (192.168.100.0/24). VMs on this network will receive IPs from **pfSense's DHCP server**.
-
-1. **Create the libvirt network XML definition:**  
-   tee /tmp/br-isolated.xml \<\<EOF  
-   \<network\>  
-     \<name\>br-isolated\</name\>  
-     \<bridge name="br-isolated"/\>  
-     \<forward mode='isolated'/\>  
-     \<ip address='192.168.100.1' prefix='24'\>  
-     \</ip\>  
-   \</network\>  
-   EOF
-
-2. **Define, start, and autostart the libvirt network:**  
-   virsh net-define /tmp/br-isolated.xml  
-   virsh net-start br-isolated  
-   virsh net-autostart br-isolated
-
-#### **e. Verify Bridge Creation**
-
-After creating all bridges, confirm that they are active and correctly configured on your Arch Linux host.  
-ip a | grep br-  
-brctl show  
-virsh net-list \--all
-
-* **Expected Output:** You should see br-wan, br-lan, br-dmz, and br-isolated listed. For br-wan, brctl show should also indicate that your physical NIC is an interface of br-wan. If any are missing or not active, re-check the previous steps and journalctl \-xe.
-
-### **2.2. Install and Configure pfSense VM**
-
-pfSense will serve as the central router and firewall for your entire lab, controlling all traffic flow between your segmented networks and to/from the internet.
-
-* **Download pfSense ISO:** Obtain the latest stable CE (Community Edition) ISO image from the official pfSense website ([https://www.pfsense.org/download/](https://www.pfsense.org/download/)).  
-1. **Create pfSense VM in virt-manager:**  
-   * Open virt-manager (type virt-manager in your terminal).  
-   * Click "File" \-\> "New Virtual Machine."  
-   * **Step 1 (Choose how you would like to install the operating system):** Select "Local install media (ISO image or CDROM)." Click "Forward."  
-   * **Step 2 (Choose ISO or CDROM):** Click "Browse..." \-\> "Browse Local" and navigate to your downloaded pfSense ISO.  
-   * **Step 3 (Choose the operating system you are installing):** Type FreeBSD and select "FreeBSD 13.x (or latest available)."  
-   * **Step 4 (Memory and CPU):**  
-     * **Memory (RAM):** 4096 MB (4 GiB) \- This provides a good balance for pfSense's features.  
-     * **CPUs:** 2 \- Sufficient for routing and firewalling in a lab environment.  
-   * **Step 5 (Enable storage for this virtual machine):**  
-     * **Disk Size:** 50 GiB (Ensure "Select or create custom storage" is chosen, and specify 50 GiB for the qcow2 image).  
-   * **Step 6 (Name the virtual machine and configure the installation):**  
-     * **Name:** pfSense  
-     * **Crucial \- Network Selection (Initial):** By default, it might select Default (NAT). **Do NOT click "Finish" yet.**  
-     * Check the box "Customize configuration before install." Click "Finish."  
-2. Configure pfSense Network Interfaces in virt-manager:  
-   After clicking "Finish," the VM details window will open. This is where you connect pfSense's virtual NICs to your newly created host bridges.  
-   * Locate the existing "NIC: Virtual network interface" (it will likely be connected to Default). Click "Remove Hardware" to remove this default NIC.  
-   * Click "Add Hardware" \-\> "Network."  
-     * **Network source:** Select "Bridge device" from the dropdown.  
-     * **Device name:** Choose br-wan.  
-     * **Device Model:** Set to virtio (for best performance).  
-     * Click "Finish."  
-   * Repeat "Add Hardware" \-\> "Network" for the remaining interfaces, ensuring each is connected to the correct bridge:  
-     * **NIC 2 (LAN):** Network source: "Bridge device", Device name: br-lan, Device Model: virtio.  
-     * **NIC 3 (DMZ):** Network source: "Bridge device", Device name: br-dmz, Device Model: virtio.  
-     * **NIC 4 (MAL):** Network source: "Bridge device", Device name: br-isolated, Device Model: virtio.  
-   * **Important:** Ensure all NICs are set to virtio for optimal performance and compatibility with pfSense.  
-   * **Crucial: Qemu Machine Type for pfSense:** Due to known compatibility issues between newer Qemu machine types and FreeBSD (which pfSense is based on), it's highly recommended to set an older, compatible machine type. Go to the "Overview" section of the VM details, click "Hypervisor Details," and change the "Chipset" or "Machine type" to an older, stable version, such as pc-q35-2.6 or similar. Failure to do so might lead to installation failures or boot issues.  
-3. **Install pfSense:**  
-   * Click "Begin Installation" in virt-manager.  
-   * Follow the on-screen prompts for pfSense installation.  
-   * **Interface Assignment (Crucial during pfSense setup):** During installation, pfSense will detect the virtual NICs (e.g., vtnet0, vtnet1, vtnet2, vtnet3 corresponding to your virtio NICs). You will be prompted to assign them to their respective roles:  
-     * **WAN:** Assign the interface connected to br-wan (e.g., vtnet0).  
-     * **LAN:** Assign the interface connected to br-lan (e.g., vtnet1).  
-     * **DMZ:** Assign the interface connected to br-dmz (e.g., vtnet2).  
-     * **MAL:** Assign the interface connected to br-isolated (e.g., vtnet3).  
-     * Confirm the assignments.  
-   * Complete the installation process and reboot the pfSense VM.  
-4. Configure pfSense Post-Installation (via Console and Web UI):  
-   After pfSense reboots, you will perform initial network configuration via its console (within virt-manager). All subsequent, more detailed configurations, including enabling DHCP servers and setting firewall rules, will be done via its web-based Graphical User Interface (GUI).  
-   * **Initial Console Configuration (within virt-manager):**  
-     * **WAN Interface:** This interface should be configured as a **DHCP client** by default, receiving an IP address from your home router. Verify it has successfully obtained an IP address.  
-     * **LAN Interface:** Set a **static IP address:** 10.0.0.1 and Subnet mask: 255.255.255.0 (or /24). (You can also set static IPs for DMZ and MAL interfaces via the console at this stage, or later via the web GUI).  
-   * **Web GUI Configuration (from Kali Linux VM \- No Internet Access Required for Kali for this step):**  
-     * Open a web browser on your Kali Linux VM (or any VM connected to the br-lan network). **Note: Your Kali VM does NOT need internet access to perform this step, as it is communicating directly with pfSense on the internal br-lan network.**  
-     * Navigate to the IP address of your pfSense LAN interface: https://10.0.0.1  
-     * Proceed past any certificate warnings (as pfSense uses a self-signed certificate by default).  
-     * Log in with the default credentials: admin / pfsense (it is highly recommended to change these immediately\!).  
-     * **LAN Interface:**  
-       * (Assuming you set its static IP via console)  
-       * **Enable DHCP Server:** Navigate to **Services \-\> DHCP Server \-\> LAN** in the pfSense web GUI. Enable the DHCP server and configure an IP address range for client leases (e.g., 10.0.0.100 to 10.0.0.200). **pfSense will act as the DHCP server for all VMs on the LAN network.**  
-     * **DMZ Interface:**  
-       * Set a **static IP address:** 172.16.0.1  
-       * Subnet mask: 255.255.255.0 (or /24)  
-       * **Enable DHCP Server:** Go to **Services \-\> DHCP Server \-\> DMZ** in the pfSense web GUI. Enable it and configure a range (e.g., 172.16.0.100 to 172.16.0.200). **pfSense will act as the DHCP server for all VMs on the DMZ network.**  
-     * **MAL Interface:**  
-       * Set a **static IP address:** 192.168.100.1  
-       * Subnet mask: 255.255.255.0 (or /24)  
-       * **Enable DHCP Server:** Go to **Services \-\> DHCP Server \-\> MAL** in the pfSense web GUI. Enable it and configure a range (e.g., 192.168.100.100 to 192.168.100.200). **pfSense will act as the DHCP server for all VMs on the MAL network.**  
-     * **Firewall Rules (Basic Setup):**  
-       * **LAN to WAN:** By default, LAN should have outbound internet access.  
-       * **DMZ to WAN:** Allow outbound internet access.  
-       * **WAN to DMZ:** Allow inbound HTTP/HTTPS (ports 80, 443\) to your Docker Host VM's IP address (once known). This requires a NAT rule on pfSense.  
-       * **DMZ to LAN:** **Block by default.** This is a critical security measure. Only allow specific, well-defined traffic if absolutely necessary for a lab exercise (e.g., if a DMZ service needs to query an internal database).  
-       * **MAL Network:** By default, block all traffic to/from WAN, LAN, and DMZ. This network should be truly isolated for sensitive work, preventing any accidental egress of malware or exploit code.  
-       * **Troubleshooting pfSense Connectivity:**  
-         * **No Internet on VMs:** Check pfSense's WAN status (does it have an IP?). Check pfSense's firewall rules (Firewall \-\> Rules) to ensure traffic is allowed from LAN/DMZ to WAN. Also, check DNS settings on pfSense (System \-\> General Setup).  
-         * **VMs not getting IPs:** Verify DHCP server is enabled on the correct pfSense interfaces (Services \-\> DHCP Server). Check the DHCP range to ensure it's valid and not conflicting.  
-         * **Inter-segment communication issues:** This is almost always a pfSense firewall rule issue. Review Firewall \-\> Rules for the source and destination interfaces. Remember that rules are processed top-down.
-
-## **3\. Deploying Your Target Environments: Vulnerable Virtual Machines**
-
-With your network infrastructure (pfSense and bridges) in place, you can now populate your segmented networks with the virtual machines for your pentesting practice. For each VM, remember to connect its network interface to the correct virtual bridge (br-lan, br-dmz, or br-isolated) in virt-manager.
-
-### **3.1. Attacker Machine (LAN Network)**
-
-* **Kali Linux**  
-  * **Purpose:** Your primary offensive workstation, equipped with a vast array of security tools for all phases of penetration testing.  
-  * **Connect to:** br-lan (will receive IP from pfSense's DHCP server)  
-  * **Resources:**  
-    * **CPU:** 4 Cores  
-    * **RAM:** 8 GiB  
-    * **Disk:** 100 GiB (This generous allocation ensures ample room for all pre-installed tools, additional installations like PimpMyKali and Anonsurf, updates, and your custom scripts/data.)  
-  * **Configuration Steps:**  
-    1. **Install Kali Linux:** Download the official Kali Linux ISO and perform a standard installation as a new VM in virt-manager.  
-    2. **Network Configuration:** During installation, ensure its network adapter is configured to obtain an IP address automatically (DHCP). It should successfully receive an IP from pfSense's LAN DHCP server (e.g., 10.0.0.x).  
-    3. **Update System:** After installation, open a terminal in Kali and update its package lists and upgrade installed packages:  
-       sudo apt update && sudo apt full-upgrade \-y
-
-       **Note on Internet Connectivity for Updates:** For Kali Linux to download updates, it will require outbound internet access. Ensure your pfSense firewall rules allow traffic from the LAN network (where Kali resides) to the WAN (internet). If updates fail, check ping 8.8.8.8 and dig google.com from Kali to diagnose network/DNS issues.  
-    4. **Install PimpMyKali/Anonsurf (Optional but Recommended):** These tools enhance Kali's functionality and privacy. **Refer to their respective GitHub pages or official documentation for the most up-to-date installation instructions, as these can change frequently.**
-
-### **3.2. Active Directory Security Targets (LAN Network)**
-
-This section focuses on building a realistic Active Directory environment for practicing domain-level attacks, lateral movement, and privilege escalation within Windows infrastructure.
-
-* **Windows Server 2019 (Domain Controller)**  
-  * **Purpose:** The central component of your Active Directory lab, acting as the Domain Controller (DC), DNS server, and DHCP server for the LAN.  
-  * **Connect to:** br-lan  
-  * **Resources:**  
-    * **CPU:** 4 Cores  
-    * **RAM:** 8 GiB  
-    * **Disk:** 100 GiB (Provides sufficient space for the OS, AD database, logs, and future growth.)  
-  * **Configuration Steps:**  
-    1. **Install Windows Server 2019:** Download the Windows Server 2019 ISO (evaluation versions are available from Microsoft) and perform a standard installation (e.g., Datacenter with Desktop Experience) as a new VM in virt-manager.  
-    2. **Install VirtIO Drivers (Crucial for Windows VMs):** These drivers are essential for optimal performance and proper device recognition (network adapter, disk controller, ballooning) within the KVM environment.  
-       * **Download virtio-win.iso**: On your Arch Linux host, download the latest virtio-win.iso from the official Fedora KVM Virtio Drivers page: [https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso).  
-       * **Attach ISO to VM**: In virt-manager, with the Windows Server VM powered off, open its details. Click "Add Hardware," select "Storage," choose "CDROM device," and browse to the downloaded virtio-win.iso file.  
-       * **Install Drivers in VM**: Power on the Windows Server VM.  
-         * Open File Explorer and navigate to the attached virtio-win CD drive.  
-         * Run the virtio-win-gt-x64.msi installer for 64-bit Windows. Follow the prompts to install all VirtIO drivers.  
-         * **Alternative (Manual Device Manager):** If devices are not recognized, open Device Manager (right-click Start \-\> Device Manager), right-click on any unrecognized devices (e.g., "Ethernet Controller," "SCSI Controller"), select "Update driver," and point it to the virtio-win CD drive.  
-         * **Reboot the VM** after installation to ensure all drivers are loaded correctly.  
-         * **Troubleshooting VirtIO:** If Windows doesn't recognize the network adapter or disk, ensure the VirtIO ISO is properly attached and that you've run the installer. Sometimes, Windows Update might install generic drivers; ensure the VirtIO ones are specifically used.  
-    3. **Initial Network Configuration (Static IP):**  
-       * Open Network and Sharing Center \-\> Change adapter settings.  
-       * Right-click your Ethernet adapter \-\> Properties \-\> Internet Protocol Version 4 (TCP/IPv4) \-\> Properties.  
-       * Select "Use the following IP address" and assign a **static IP address** within your br-lan subnet. **Crucially, choose an IP address *outside* the DHCP range you configured on pfSense** (e.g., 10.0.0.10).  
-       * Set the **Subnet mask** to 255.255.255.0.  
-       * Set the **Default gateway** to your pfSense LAN interface IP (10.0.0.1).  
-       * For **Preferred DNS server**, initially point it to the pfSense LAN IP (10.0.0.1). **This will be changed to 127.0.0.1 later, after AD DS and DNS roles are installed.**  
-    4. **Install Active Directory Domain Services (AD DS), DNS, and DHCP Roles:**  
-       * Open Server Manager.  
-       * Click "Manage" \-\> "Add Roles and Features."  
-       * Follow the wizard: Select "Role-based or feature-based installation."  
-       * Select your server.  
-       * Under "Server Roles," select:  
-         * **Active Directory Domain Services** (AD DS)  
-         * **DNS Server**  
-         * **DHCP Server**  
-       * Continue through the wizard, installing any required features.  
-    5. **Promote to Domain Controller:**  
-       * After the roles are installed, a yellow notification flag will appear in Server Manager. Click it and select "Promote this server to a domain controller."  
-       * Choose "Add a new forest" and provide a root domain name (e.g., pentestlab.local or umbrellacorp.local).  
-       * Set a strong Directory Services Restore Mode (DSRM) password (keep it secure\!).  
-       * Follow the remaining prompts. The server will reboot to complete the promotion process.  
-    6. **Verify AD DS, DNS, DHCP and Update DNS:**  
-       * After reboot, log in to the server. Open Server Manager and ensure that AD DS, DNS, and DHCP services are running and healthy.  
-       * **Crucial DNS Change**: Go back to your network adapter settings (as in step 3\) and change the **Preferred DNS server** to 127.0.0.1 (localhost). This server is now your authoritative DNS server for the domain.  
-       * Verify the DHCP scope is active and correctly configured to hand out IP addresses to other VMs on the br-lan network, with the DC's IP as the primary DNS server.  
-       * **Troubleshooting AD/DNS/DHCP:** If other VMs can't join the domain or resolve domain names, check:  
-         * DNS settings on the client VMs (must point to the DC's IP).  
-         * Time synchronization between DC and clients (can cause authentication issues).  
-         * DC's firewall (ensure AD ports are open, though usually handled by role installation).  
-         * DHCP scope on pfSense (ensure it's not conflicting with the DC's DHCP if you enabled both, or disable pfSense's DHCP for LAN if the DC will handle it).  
-    7. **Create Users and Groups (Optional but Recommended for Realism):**  
-       * Use "Active Directory Users and Computers" to create various Organizational Units (OUs), users (e.g., "john.doe," "jane.smith," "svc\_web," "admin\_user"), and groups (e.g., "Domain Admins," "IT Staff," "HR Users"). This provides a more realistic target environment for practicing privilege escalation and lateral movement.  
-* **Windows 10 Clients (x2 Recommended)**  
-  * **Purpose:** Simulate end-user workstations. These are crucial for practicing client-side attacks, local privilege escalation, and lateral movement techniques within the domain.  
-  * **Connect to:** br-lan (will receive IP from pfSense's DHCP server, but DNS will point to the DC)  
-  * **Resources (each):**  
-    * **CPU:** 2 Cores  
-    * **RAM:** 6 GiB  
-    * **Disk:** 80 GiB  
-  * **Configuration Steps:**  
-    1. **Install Windows 10:** Download the Windows 10 ISO (evaluation versions are available from Microsoft) and perform a standard installation as a new VM in virt-manager.  
-    2. **Install VirtIO Drivers:** Follow the same steps as for the Windows Server (attach virtio-win.iso and install drivers). **Reboot** after installation.  
-    3. **Initial Network Configuration (DHCP with Custom DNS):**  
-       * Open Network and Sharing Center \-\> Change adapter settings \-\> Right-click your Ethernet adapter \-\> Properties \-\> Internet Protocol Version 4 (TCP/IPv4) \-\> Properties.  
-       * Select "Obtain an IP address automatically" (since pfSense's DHCP will assign it).  
-       * Select "Use the following DNS server addresses."  
-       * Set **Preferred DNS server** to the **static IP address of your Windows Server 2019 Domain Controller** (e.g., 10.0.0.10). This is absolutely critical for successful domain joining.  
-       * Set **Alternate DNS server** to your pfSense LAN IP (e.g., 10.0.0.1) as a fallback, or leave it blank if you want to strictly rely on the DC's DNS.  
-    4. **Join the Domain:**  
-       * Right-click "This PC" \-\> Properties \-\> Click "Change settings" (under "Computer name, domain, and workgroup settings") \-\> Click "Change..."  
-       * Select the "Domain" radio button and enter the domain name you created on your DC (e.g., pentestlab.local).  
-       * You will be prompted for credentials. Enter the domain administrator username and password (e.g., Administrator and its password from the DC).  
-       * The computer will join the domain and require a reboot.  
-       * **Troubleshooting Domain Join:** Common issues include incorrect DNS settings (not pointing to the DC), time skew between client and DC, or firewall blocking on the DC. Ensure ping \<DC\_IP\> and ping \<domain\_name\> work from the client.  
-    5. **Verify Domain Join:** After reboot, log in using a domain user account (e.g., pentestlab\\john.doe or john.doe@pentestlab.local).  
-    6. **Create Local Accounts (Optional for Local PE Practice):** While primarily for domain practice, you can also create local user accounts (standard and administrator) on these Windows 10 VMs to practice local privilege escalation techniques that don't involve Active Directory.
-
-### **3.3. Web Application Security Targets (DMZ Network)**
-
-This section details the setup for intentionally vulnerable web applications, ideal for practicing OWASP Top 10 vulnerabilities. Deploying them on a Docker Host VM within the DMZ offers efficient resource utilization and easy management.
-
-* **Docker Host VM (e.g., Ubuntu Server)**  
-  * **Purpose:** A lightweight Linux VM to host multiple vulnerable web applications as Docker containers. This centralizes web app management and is more resource-efficient than running a full VM for each web app.  
-  * **Connect to:** br-dmz (will receive IP from pfSense's DHCP server)  
-  * **Resources:**  
-    * **CPU:** 2 Cores  
-    * **RAM:** 4 GiB  
-    * **Disk:** 50 GiB (Sufficient for Ubuntu Server, Docker engine, and multiple container images.)  
-  * **Configuration Steps:**  
-    1. **Install Ubuntu Server VM:** Use virt-manager to create a new VM. Select a minimal Ubuntu Server (LTS recommended) ISO. Allocate the specified resources. Connect its network interface to br-dmz. Perform a standard installation, ensuring the SSH server is installed for convenient remote management.  
-    2. **Update System:** After installation, log in via SSH or directly on the console. Update package lists and upgrade installed packages:  
-       sudo apt update && sudo apt upgrade \-y
-
-       **Note on Internet Connectivity for Updates:** For this Ubuntu Server VM to download updates, it will require outbound internet access. Ensure your pfSense firewall rules allow traffic from the DMZ network (where this VM resides) to the WAN (internet).  
-    3. **Install Docker and Docker Compose:**  
-       * Install Docker Engine:  
-         sudo apt install docker.io \-y  
-         sudo systemctl enable \--now docker  
-         sudo usermod \-aG docker $(whoami) \# Add your user to the docker group for non-sudo docker commands
-
-         *(If you are logged in directly on the VM, log out and log back in to apply group changes for your user, or reconnect your SSH session.)*  
-       * Install Docker Compose (often included with docker.io or as a separate package docker-compose):  
-         sudo apt install docker-compose \-y  
-         \# Note: Newer Docker versions might prefer the 'docker compose' plugin instead of the 'docker-compose' binary.  
-         \# You can check its version with 'docker compose version' after Docker installation.
-
-       * **Troubleshooting Docker:** If docker commands require sudo even after adding your user to the docker group and re-logging, try sudo systemctl restart docker. If containers fail to start, check docker logs \<container\_name\_or\_id\>.  
-    4. **Deploy OWASP Juice Shop:**  
-       * Create a directory for Juice Shop:  
-         mkdir \~/juice-shop && cd \~/juice-shop
-
-       * Create a docker-compose.yml file in this directory:  
-         version: '3'  
-         services:  
-           juice-shop:  
-             image: bkimminich/juice-shop  
-             ports:  
-               \- "3000:3000" \# Host\_Port:Container\_Port \- Access via http://\<DockerHostIP\>:3000  
-             restart: always
-
-       * Start Juice Shop:  
-         docker compose up \-d
-
-       * **Verify:** Access http://\<DockerHostIP\>:3000 from your Kali Linux VM. (Replace \<DockerHostIP\> with the actual IP address of your Docker Host VM in the DMZ). **For detailed usage and challenges, refer to the [OWASP Juice Shop official documentation](https://pwning.owasp-juice.shop/part2/setup.html) or its GitHub repository.**  
-    5. **Deploy DVWA (Damn Vulnerable Web Application):**  
-       * Create a directory for DVWA:  
-         mkdir \~/dvwa && cd \~/dvwa
-
-       * Create a docker-compose.yml file in this directory:  
-         version: '3.8'  
-         services:  
-           db:  
-             image: mysql:5.7  
-             environment:  
-               MYSQL\_DATABASE: dvwa  
-               MYSQL\_USER: dvwa  
-               MYSQL\_PASSWORD: password  
-               MYSQL\_ROOT\_PASSWORD: root  
-             volumes:  
-               \- db\_data:/var/lib/mysql  
-             restart: always  
-           web:  
-             build: .  
-             ports:  
-               \- "80:80" \# Host\_Port:Container\_Port \- Access via http://\<DockerHostIP\>  
-             depends\_on:  
-               \- db  
-             volumes:  
-               \- ./config.inc.php:/var/www/html/config/config.inc.php  
-             restart: always  
-         volumes:  
-           db\_data:
-
-       * Create a Dockerfile in the same directory (\~/dvwa):  
-         FROM php:7.4-apache
-
-         RUN apt-get update && apt-get install \-y \\  
-             libapache2-mod-php \\  
-             php-mysql \\  
-             php-gd \\  
-             php-xml \\  
-             php-mbstring \\  
-             unzip \\  
-             git \\  
-             && rm \-rf /var/lib/apt/lists/\*
-
-         \# Install DVWA  
-         RUN git clone https://github.com/ethicalhack3r/DVWA.git /var/www/html
-
-         \# Configure Apache  
-         RUN a2enmod rewrite  
-         COPY apache-dvwa.conf /etc/apache2/sites-available/000-default.conf  
-         RUN chown \-R www-data:www-data /var/www/html  
-         RUN chmod \-R 777 /var/www/html/hackable/uploads  
-         RUN chmod \-R 777 /var/www/html/external/phpids/0.6/lib/IDS/tmp
-
-         EXPOSE 80
-
-       * Create apache-dvwa.conf in the same directory (\~/dvwa):  
-         \<VirtualHost \*:80\>  
-             DocumentRoot /var/www/html  
-             \<Directory /var/www/html\>  
-                 Options Indexes FollowSymLinks  
-                 AllowOverride All  
-                 Require all granted  
-             \</Directory\>  
-             ErrorLog ${APACHE\_LOG\_DIR}/error.log  
-             CustomLog ${APACHE\_LOG\_DIR}/access.log combined  
-         \</VirtualHost\>
-
-       * Create config.inc.php in the same directory (\~/dvwa):  
-         \<?php
-
-         // Database variables  
-         $DBMS \= 'MySQL';  
-         $DB\_SERVER \= 'db'; \# Changed from '127.0.0.1' to 'db' (service name in docker-compose)  
-         $DB\_DATABASE \= 'dvwa';  
-         $DB\_USER \= 'dvwa';  
-         $DB\_PASSWORD \= 'password';
-
-         // ReCAPTCHA settings (leave blank for lab, or obtain keys if desired)  
-         $recaptcha\_public\_key \= '';  
-         $recaptcha\_private\_key \= '';
-
-         ?\>
-
-       * Start DVWA:  
-         docker compose up \-d \--build
-
-       * **Verify:** Access http://\<DockerHostIP\> from your Kali Linux VM. Navigate to setup.php and click "Create / Reset Database." Default credentials: admin/password. **For detailed usage and challenges, refer to the [DVWA GitHub repository](https://github.com/ethicalhack3r/DVWA).**  
-    6. **Deploy WebGoat:**  
-       * Create a directory for WebGoat:  
-         mkdir \~/webgoat && cd \~/webgoat
-
-       * Create a docker-compose.yml file in this directory:  
-         version: '3'  
-         services:  
-           webgoat:  
-             image: webgoat/webgoat-8.0  
-             ports:  
-               \- "8080:8080" \# Host\_Port:Container\_Port \- Access via http://\<DockerHostIP\>:8080/WebGoat  
-             restart: always
-
-       * Start WebGoat:  
-         docker compose up \-d
-
-       * **Verify:** Access http://\<DockerHostIP\>:8080/WebGoat from your Kali Linux VM. **For detailed usage and lessons, refer to the [OWASP WebGoat official documentation](https://github.com/WebGoat/WebGoat).**
-
-### **3.4. Network Security & Privilege Escalation Targets (LAN Network)**
-
-This section details the setup of intentionally vulnerable Linux and Windows systems for practicing network reconnaissance, service exploitation, and privilege escalation.
-
-* **Metasploitable 3 (Windows and Ubuntu Builds \- Highly Recommended)**  
-  * **Purpose:** Offers a more realistic and complex intentionally vulnerable environment using both Windows and Ubuntu operating systems. This diversity is crucial for practicing a wider range of network security, privilege escalation, and post-exploitation techniques across different platforms, mirroring real-world mixed environments.  
-  * **Connect to:** br-lan (both builds will receive IPs from pfSense's DHCP server)  
-  * **Resources (per build):**  
-    * **CPU:** 4 Cores  
-    * **RAM:** 6 GiB  
-    * **Disk:** 80 GiB  
-  * **Configuration Steps:**  
-    1. **Prerequisites on Arch Linux Host:**  
-       * **Vagrant:** Install Vagrant for automated VM provisioning:  
-         sudo pacman \-S vagrant
-
-       * **Vagrant Libvirt Plugin:** Install the KVM/Qemu provider for Vagrant:  
-         vagrant plugin install vagrant-libvirt
-
-       * **Packer:** Metasploitable 3 uses Packer to build the base images. Install it:  
-         sudo pacman \-S packer
-
-       * **Git:** To clone the Metasploitable 3 repository:  
-         sudo pacman \-S git
-
-       * **Troubleshooting Prerequisites:** If any of these tools fail to install, check your Arch Linux package repositories and internet connectivity. Ensure your \~/.bashrc or \~/.zshrc has export PATH="$PATH:$HOME/.local/bin" if you install Python packages to user-local.  
-    2. **Download Metasploitable 3 Project:**  
-       * Clone the official Metasploitable 3 repository:  
-         git clone https://github.com/rapid7/metasploitable3.git  
-         cd metasploitable3
-
-    3. **Build Both Metasploitable 3 VMs:**  
-       * **For Windows 2008 R2:** This provides a vulnerable Windows server, excellent for Windows-specific exploitation.  
-         vagrant up win2k8 \--provider=libvirt
-
-         *(**Note:** This process is lengthy. It will download the Windows ISO, build the VM, install updates, and configure vulnerabilities. This can take several hours depending on your internet speed and CPU. Be patient\!)*  
-         * Default Windows login: vagrant/vagrant.  
-       * **For Ubuntu (Linux):** This provides a vulnerable Linux server, complementing other Linux targets and offering different exploitation paths.  
-         vagrant up ubuntu \--provider=libvirt
-
-         * Default Ubuntu login: vagrant/vagrant.  
-       * **Important Note:** Always specify \--provider=libvirt to ensure Vagrant uses KVM/Qemu, not VirtualBox. **For detailed build instructions and post-setup information, refer to the [Metasploitable 3 GitHub repository](https://github.com/rapid7/metasploitable3).**  
-       * **Troubleshooting Vagrant/Packer Builds:**  
-         * **Build hangs or fails:** This is often due to insufficient host resources (RAM/CPU), network issues (internet access for downloads), or firewall blocking on the host. Ensure pfSense is allowing outbound traffic from your host (if Vagrant/Packer tries to download through it, though typically it uses the host's direct internet).  
-         * **"Provider 'libvirt' not found":** Ensure vagrant-libvirt plugin is installed and your user has libvirt group permissions.  
-         * **"No space left on device":** Check your host's disk space. Vagrant builds can consume a lot of temporary space.  
-    4. **Verify Metasploitable 3 VM Creation:**  
-       * Once vagrant up completes, list the running VMs:  
-         virsh list \--all
-
-         You should see both metasploitable3\_win2k8\_default and metasploitable3\_ubuntu\_default listed.  
-    5. **Connect Metasploitable 3 VMs to br-lan:**  
-       * By default, Vagrant creates its own isolated libvirt network. You need to move both Metasploitable 3 VMs to your br-lan network.  
-       * Open virt-manager.  
-       * For **each** Metasploitable 3 VM (e.g., metasploitable3\_win2k8\_default and metasploitable3\_ubuntu\_default):  
-         * Go to its "Virtual Hardware Details" (click the i icon).  
-         * Select the "Network interface" (it will likely be connected to a Vagrant-created network).  
-         * Change its "Network source" to "Bridge device" and select br-lan from the dropdown.  
-         * **Reboot the VM** to apply network changes. They should now get IPs from pfSense's DHCP server on the LAN network.  
-       * **Troubleshooting Network Reconnection:** If the VMs don't get an IP after moving to br-lan, ensure pfSense's DHCP server is active on the LAN interface and that the VM's network adapter is set to DHCP.
-
-### **3.5. MAL Network (Optional but Highly Recommended for Malware Analysis & Exploit Dev)**
-
-This network segment is designed for highly sensitive tasks, ensuring no accidental external connectivity, making it ideal for analyzing potentially malicious code in a controlled environment.
-
-* **Dedicated Linux VM (e.g., for REMnux in Docker)**  
-  * **Purpose:** For Linux-based malware analysis, reverse engineering, and exploit development using the specialized tools available in REMnux.  
-  * **Connect to:** br-isolated (will receive IP from pfSense's DHCP server on the MAL network)  
-  * **Resources:**  
-    * **CPU:** 2 Cores  
-    * **RAM:** 4 GiB  
-    * **Disk:** 120 GiB (Sufficient for the base Ubuntu Server OS, Docker engine, the REMnux Docker image, and space for malware samples and analysis artifacts.)  
-  * **Configuration Steps:**  
-    1. **Install Ubuntu Server VM:** Similar to the Docker Host VM for web apps, create a new Ubuntu Server VM with the specified resources.  
-    2. **Connect to:** br-isolated.  
-    3. **Install Docker and Docker Compose:** Follow the same Docker installation steps as for the Web App Docker Host VM (Section 3.3).  
-    4. **Deploy REMnux Docker Container:**  
-       * Pull the REMnux Docker image:  
-         sudo docker pull remnux/remnux-full
-
-       * Run the REMnux container. This command maps the current directory on your host as /home/remnux/data inside the container for easy file sharing. It also maps common ports for analysis tools that might be used within REMnux.  
-         sudo docker run \--rm \-it \-p 8000:8000 \-p 8080:8080 \-p 9000:9000 \-v $(pwd):/home/remnux/data remnux/remnux-full
-
-       * You will get a shell inside the REMnux container. You can now use all REMnux tools. To exit the container shell without stopping the container, press Ctrl+P then Ctrl+Q. To stop the container, type exit in the container shell. **For the most current deployment and usage instructions, refer to the [REMnux official documentation](https://remnux.org/docs/install/) or its GitHub repository.**  
-       * **Troubleshooting REMnux/Docker:** Ensure you have enough disk space for the REMnux image (it's large). If the container fails to start, check docker logs \<container\_id\> for specific errors.  
-* **Dedicated Windows VM with FlareVM**  
-  * **Purpose:** For Windows-based malware analysis, reverse engineering, and exploit development. FlareVM is a free, open-source, scriptable Windows-based security distribution designed for reverse engineers, malware analysts, and incident responders. It installs a comprehensive suite of tools (debuggers, disassemblers, static analysis tools, network analysis tools, etc.) on a clean Windows installation.  
-  * **Connect to:** br-isolated (will receive IP from pfSense's DHCP server on the MAL network)  
-  * **Resources:**  
-    * **CPU:** 4 Cores  
-    * **RAM:** 8 GiB (FlareVM can be resource-intensive due to the number of tools it installs and runs.)  
-    * **Disk:** 200 GiB (Allocate generous disk space to accommodate the base Windows installation, FlareVM's extensive toolset, and sufficient room for malware samples and analysis artifacts.)  
-  * **Configuration Steps:**  
-    1. **Install Windows 10/Server VM:** Create a new Windows 10 or Windows Server VM (e.g., Windows Server 2019 Datacenter) with the specified resources.  
-    2. **Install VirtIO Drivers:** Crucial for performance. Follow the same steps as for other Windows VMs (attach virtio-win.iso and install drivers).  
-    3. **Initial Network Configuration:** Configure the network adapter to obtain an IP automatically from pfSense's DHCP on the br-isolated network.  
-    4. **Prepare for FlareVM Installation:**  
-       * **Disable Windows Defender** (or any other antivirus) and **Windows SmartScreen**. These security features will interfere with the installation of many security tools.  
-       * Set PowerShell execution policy to Unrestricted:  
-         Set-ExecutionPolicy Unrestricted \-Force
-
-       * Install Git for Windows (if not already present).  
-    5. **Install FlareVM:**  
-       * Open **PowerShell as Administrator**.  
-       * Clone the FlareVM repository:  
-         git clone https://github.com/mandiant/flare-vm.git  
-         cd flare-vm
-
-       * Run the installation script. This process can take several hours, as it downloads and installs many tools from various sources.  
-         .\\install.ps1
-
-         Follow any prompts during the installation. **For the most current installation instructions and prerequisites, refer to the [FlareVM GitHub repository](https://github.com/mandiant/flare-vm).**  
-       * **Troubleshooting FlareVM:** Installation can be very long and prone to errors if internet connectivity is unstable or if Windows Defender/SmartScreen are not fully disabled. Ensure your VM has consistent internet access *during installation* (if pfSense rules allow outbound from isolated) and sufficient disk space. If it fails, try re-running the script or checking the PowerShell output for specific errors.
-
-## **4\. Practical Lab Scenarios: Optimizing Your Practice**
-
-To make the most of your lab resources and focus your practice, it's highly recommended to only run the virtual machines relevant to the specific cybersecurity domain you are currently working on. This approach conserves host resources (CPU, RAM) and simplifies troubleshooting by reducing the number of active components.  
-Your host system has **32GB RAM**, **32GB Swap**, and **1TB dedicated storage**. The resource totals below represent the *combined* requirements for the VMs running in each scenario.  
-Here are recommended VM configurations for different practice scenarios:
+**Verify KVM Kernel Modules**:
+```bash
+# Check if KVM modules are loaded
+lsmod | grep kvm
+
+# Expected output examples:
+# For Intel: kvm_intel, kvm
+# For AMD: kvm_amd, kvm
+
+# Load modules if not loaded (usually auto-loaded, but verify)
+# For Intel:
+if ! lsmod | grep -q kvm_intel; then
+    echo "Loading KVM Intel module..."
+    sudo modprobe kvm_intel
+fi
+
+# For AMD:
+if ! lsmod | grep -q kvm_amd; then
+    echo "Loading KVM AMD module..."
+    sudo modprobe kvm_amd
+fi
+
+# Verify modules loaded
+lsmod | grep kvm
+```
+
+**Expected Output**:
+- `kvm_intel` and `kvm` modules listed (for Intel CPUs)
+- `kvm_amd` and `kvm` modules listed (for AMD CPUs)
+
+**Complete Verification**:
+```bash
+# Check libvirt connection
+virsh version
+
+# Check if default network exists
+virsh net-list --all
+
+# Test virsh command (should work without sudo after group setup)
+virsh list --all
+```
+
+### **1.5. Configure Storage for VMs**
+
+Create a dedicated directory for VM storage. Choose a location based on your available disk space:
+
+#### **Option 1: Use Default libvirt Location (Recommended)**
+
+```bash
+# Create directory if it doesn't exist
+sudo mkdir -p /var/lib/libvirt/images
+
+# Set ownership to your user (replace $USER with your username if needed)
+CURRENT_USER="${USER:-$(whoami)}"
+sudo chown "$CURRENT_USER:$CURRENT_USER" /var/lib/libvirt/images
+
+# Set appropriate permissions
+sudo chmod 755 /var/lib/libvirt/images
+
+# Verify
+ls -ld /var/lib/libvirt/images
+# Should show your user as owner
+```
+
+#### **Option 2: Use Custom Location (For Separate Drive or More Space)**
+
+```bash
+# Choose your storage location (example: /mnt/vm-storage or /data/vms)
+# Replace /mnt/vm-storage with your preferred path
+VM_STORAGE="/mnt/vm-storage"
+
+# Create directory
+sudo mkdir -p "$VM_STORAGE"
+
+# Set ownership
+CURRENT_USER="${USER:-$(whoami)}"
+sudo chown "$CURRENT_USER:$CURRENT_USER" "$VM_STORAGE"
+
+# Set permissions
+sudo chmod 755 "$VM_STORAGE"
+
+# Verify
+ls -ld "$VM_STORAGE"
+```
+
+**Note**: If using a custom location, you'll need to specify it when creating VMs in virt-manager or use `virsh` commands with full paths.
+
+#### **Option 3: Use Home Directory (Limited Space Scenarios)**
+
+```bash
+# Create VM storage in home directory
+mkdir -p ~/vm-storage
+
+# Verify
+ls -ld ~/vm-storage
+```
+
+#### **Check Available Disk Space**
+
+```bash
+# Check available space on all filesystems
+df -h
+
+# Check space in default libvirt location
+df -h /var/lib/libvirt/images
+
+# Check space in home directory
+df -h ~
+
+# For custom location (if set)
+# df -h /mnt/vm-storage
+```
+
+**Storage Tips**:
+- **Use qcow2 format**: Thin provisioning saves space (disk grows as needed)
+- **Monitor regularly**: Run `df -h` frequently to track usage
+- **Default location**: `/var/lib/libvirt/images` is used by virt-manager by default
+- **Custom location**: Requires specifying path when creating VMs
+- **Space planning**: Each VM typically needs 20-100GB depending on OS and usage
+
+### **1.6. Enable Nested Virtualization (Optional but Recommended)**
+
+Nested virtualization allows running hypervisors inside VMs (e.g., Docker Desktop, WSL2, or nested KVM).
+
+#### **Detect CPU Type First**
+
+```bash
+# Check CPU vendor
+CPU_VENDOR=$(grep -m1 vendor_id /proc/cpuinfo | awk '{print $3}')
+
+if [ "$CPU_VENDOR" = "GenuineIntel" ]; then
+    echo "Intel CPU detected"
+    CPU_TYPE="intel"
+elif [ "$CPU_VENDOR" = "AuthenticAMD" ]; then
+    echo "AMD CPU detected"
+    CPU_TYPE="amd"
+else
+    echo "Unknown CPU vendor: $CPU_VENDOR"
+    exit 1
+fi
+```
+
+#### **Enable Nested Virtualization**
+
+**For Intel CPUs**:
+```bash
+# Create modprobe configuration
+echo "options kvm-intel nested=1" | sudo tee /etc/modprobe.d/kvm-intel.conf
+
+# Verify file was created
+cat /etc/modprobe.d/kvm-intel.conf
+
+# Unload and reload module (requires no running VMs)
+# First, check if any VMs are running
+if virsh list --state-running 2>/dev/null | grep -q running; then
+    echo "⚠️  VMs are running. Shut them down first, then run:"
+    echo "   sudo modprobe -r kvm_intel && sudo modprobe kvm_intel nested=1"
+else
+    sudo modprobe -r kvm_intel
+    sudo modprobe kvm_intel nested=1
+fi
+```
+
+**For AMD CPUs**:
+```bash
+# Create modprobe configuration
+echo "options kvm-amd nested=1" | sudo tee /etc/modprobe.d/kvm-amd.conf
+
+# Verify file was created
+cat /etc/modprobe.d/kvm-amd.conf
+
+# Unload and reload module (requires no running VMs)
+if virsh list --state-running 2>/dev/null | grep -q running; then
+    echo "⚠️  VMs are running. Shut them down first, then run:"
+    echo "   sudo modprobe -r kvm_amd && sudo modprobe kvm_amd nested=1"
+else
+    sudo modprobe -r kvm_amd
+    sudo modprobe kvm_amd nested=1
+fi
+```
+
+#### **Verify Nested Virtualization**
+
+```bash
+# Check if nested virtualization is enabled
+# For Intel:
+if [ -f /sys/module/kvm_intel/parameters/nested ]; then
+    NESTED=$(cat /sys/module/kvm_intel/parameters/nested)
+    if [ "$NESTED" = "Y" ] || [ "$NESTED" = "1" ]; then
+        echo "✓ Nested virtualization enabled for Intel"
+    else
+        echo "✗ Nested virtualization not enabled"
+    fi
+fi
+
+# For AMD:
+if [ -f /sys/module/kvm_amd/parameters/nested ]; then
+    NESTED=$(cat /sys/module/kvm_amd/parameters/nested)
+    if [ "$NESTED" = "Y" ] || [ "$NESTED" = "1" ]; then
+        echo "✓ Nested virtualization enabled for AMD"
+    else
+        echo "✗ Nested virtualization not enabled"
+    fi
+fi
+```
+
+**Important**:
+- Changes require **reboot** to persist permanently
+- If you can't reboot immediately, the modprobe commands above provide temporary enablement
+- Shut down all VMs before reloading modules
+- After reboot, nested virtualization will be enabled automatically
 
 ---
 
-## Network Security Practice Scenario
+## **2. Network Setup: Understanding libvirt Networking**
+
+### **Quick Reference: Network Types**
+
+| Network | Type | Internet | Host Access | Use Case | For This Lab |
+|---------|------|----------|-------------|----------|--------------|
+| **default (virbr0)** | NAT | ✅ Yes | ✅ Yes | General VMs | ❌ Not used |
+| **br-external** | Isolated | ❌ No | ❌ No | Attacker network | ✅ **Use this** |
+| **br-internal** | Isolated | ❌ No | ❌ No | Target network | ✅ **Use this** |
+
+**For This Lab**: Use **br-external** (192.168.100.0/24) for Kali VM and **br-internal** (192.168.200.0/24) for target VMs. pfSense connects both networks, providing firewall separation for evasion practice.
+
+---
+
+### **2.1. Understanding libvirt Default Network (virbr0)**
+
+When you install libvirt, it automatically creates a default NAT network called `default` (bridge interface: `virbr0`). Understanding this default network is important before creating custom networks.
+
+#### **Default NAT Network (virbr0) - How It Works**
+
+```mermaid
+graph TB
+    subgraph "Host System"
+        Host[Linux Host]
+        virbr0[virbr0 Bridge<br/>192.168.122.1/24<br/>NAT Gateway]
+        HostNIC[Host Physical NIC<br/>Connected to Internet]
+    end
+    
+    subgraph "Default Network - NAT Mode"
+        VM1[VM 1<br/>192.168.122.x<br/>DHCP]
+        VM2[VM 2<br/>192.168.122.x<br/>DHCP]
+        VM3[VM 3<br/>192.168.122.x<br/>DHCP]
+    end
+    
+    Internet[Internet]
+    
+    HostNIC --> Internet
+    virbr0 -->|NAT| HostNIC
+    virbr0 --> VM1
+    virbr0 --> VM2
+    virbr0 --> VM3
+    
+    VM1 -->|Can Access| Internet
+    VM2 -->|Can Access| Internet
+    VM3 -->|Can Access| Internet
+    
+    style virbr0 fill:#4a90e2,stroke:#2d5aa0,stroke-width:2px,color:#fff
+    style Internet fill:#50c878,stroke:#2d7a4a,stroke-width:2px,color:#fff
+```
+
+**Default Network Characteristics**:
+- **Network Name**: `default`
+- **Bridge Interface**: `virbr0`
+- **IP Range**: `192.168.122.0/24`
+- **Gateway**: `192.168.122.1` (libvirt host)
+- **Mode**: NAT (Network Address Translation)
+- **Internet Access**: ✅ Yes (VMs can reach internet through host)
+- **Host Access**: ✅ Yes (VMs can access host)
+- **VM-to-VM Communication**: ✅ Yes (VMs on same network can communicate)
+- **Isolation**: ❌ No (VMs can access internet and host network)
+
+#### **Check Default Network Status**
+
+```bash
+# List all libvirt networks
+virsh net-list --all
+
+# Check default network details
+virsh net-info default
+
+# View default network XML configuration
+virsh net-dumpxml default
+
+# Check virbr0 bridge interface
+ip a show virbr0
+
+# Check NAT rules (iptables)
+sudo iptables -t nat -L -n -v | grep virbr0
+```
+
+**Expected Output**: You should see `default` network active with bridge `virbr0` and IP `192.168.122.1`
+
+### **2.2. Network Types: NAT vs Isolated**
+
+This lab uses an **isolated network** for security and isolation. Here's a comparison:
+
+| Feature | Default NAT (virbr0) | Isolated Networks (br-external/br-internal) |
+|---------|---------------------|--------------------------|
+| **Internet Access** | ✅ Yes (through NAT) | ❌ No (completely isolated) |
+| **Host Network Access** | ✅ Yes | ❌ No |
+| **VM-to-VM Communication** | ✅ Yes | ✅ Yes |
+| **Security** | Lower (internet exposure) | Higher (complete isolation) |
+| **Use Case** | General VMs needing internet | Security labs, testing environments |
+| **DHCP** | ✅ Automatic | ✅ Automatic |
+| **DNS** | ✅ Automatic (via host) | ❌ No (unless configured) |
+
+**When to Use Each**:
+
+- **Default NAT (virbr0)**:
+  - VMs that need internet access (updates, downloads)
+  - General-purpose virtual machines
+  - Development environments
+  - When you want automatic internet connectivity
+
+- **Isolated Networks (br-external/br-internal)**:
+  - Security testing labs (this guide)
+  - Penetration testing environments
+  - Network security practice
+  - When you want complete network isolation
+
+### **2.3. Creating Dual-Segment Lab Networks**
+
+This lab uses **two isolated networks** separated by pfSense firewall:
+- **br-external** (192.168.100.0/24): Attacker network (Kali VM)
+- **br-internal** (192.168.200.0/24): Target network (Metasploitable, AD VMs)
+
+#### **Step 1: Create External Network Definition (br-external)**
+
+```bash
+# Create network XML definition for external network (attacker side)
+NETWORK_XML="/tmp/br-external.xml"
+
+# Create the XML file with proper formatting
+cat > "$NETWORK_XML" <<'EOF'
+<network>
+  <name>br-external</name>
+  <bridge name="br-external"/>
+  <forward mode='isolated'/>
+  <ip address='192.168.100.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.100.100' end='192.168.100.200'/>
+    </dhcp>
+  </ip>
+</network>
+EOF
+
+# Verify XML file was created and has content
+if [ -f "$NETWORK_XML" ] && [ -s "$NETWORK_XML" ]; then
+    echo "✓ Network XML file created: $NETWORK_XML"
+    # Display file contents for verification
+    cat "$NETWORK_XML"
+else
+    echo "✗ Failed to create network XML file"
+    exit 1
+fi
+
+# Validate XML syntax (if xmllint is available)
+if command -v xmllint >/dev/null 2>&1; then
+    if xmllint --noout "$NETWORK_XML" 2>/dev/null; then
+        echo "✓ XML syntax is valid"
+    else
+        echo "⚠️  XML validation failed (xmllint not available or XML invalid)"
+    fi
+fi
+```
+
+**Network Configuration Explained**:
+- **`<name>br-external</name>`**: Network name in libvirt
+- **`<bridge name="br-external"/>`**: Linux bridge interface name
+- **`<forward mode='isolated'/>`**: No forwarding to host/internet (isolated)
+- **`<ip address='192.168.100.1'/>`**: Gateway IP for this network
+- **`<dhcp><range>`**: DHCP IP range for automatic VM IP assignment
+
+#### **Step 2: Create Internal Network Definition (br-internal)**
+
+```bash
+# Create network XML definition for internal network (target side)
+NETWORK_XML="/tmp/br-internal.xml"
+
+# Create the XML file with proper formatting
+cat > "$NETWORK_XML" <<'EOF'
+<network>
+  <name>br-internal</name>
+  <bridge name="br-internal"/>
+  <forward mode='isolated'/>
+  <ip address='192.168.200.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.200.100' end='192.168.200.200'/>
+    </dhcp>
+  </ip>
+</network>
+EOF
+
+# Verify XML file was created
+if [ -f "$NETWORK_XML" ] && [ -s "$NETWORK_XML" ]; then
+    echo "✓ Internal network XML file created: $NETWORK_XML"
+    cat "$NETWORK_XML"
+else
+    echo "✗ Failed to create internal network XML file"
+    exit 1
+fi
+```
+
+#### **Step 3: Define and Start Both Networks**
+
+```bash
+# Function to create a network
+create_network() {
+    local NETWORK_XML="$1"
+    local NETWORK_NAME="$2"
+    
+    # Check if network already exists
+    if virsh net-info "$NETWORK_NAME" >/dev/null 2>&1; then
+        echo "⚠️  Network '$NETWORK_NAME' already exists"
+        if virsh net-info "$NETWORK_NAME" | grep -q "Active:.*yes"; then
+            echo "Network is already active. Skipping creation."
+            return 0
+        else
+            echo "Network exists but is inactive. Starting it..."
+            virsh net-start "$NETWORK_NAME"
+            return 0
+        fi
+    fi
+    
+    # Define the network
+    echo "Defining network '$NETWORK_NAME'..."
+    if virsh net-define "$NETWORK_XML"; then
+        echo "✓ Network '$NETWORK_NAME' defined successfully"
+    else
+        echo "✗ Failed to define network '$NETWORK_NAME'"
+        return 1
+    fi
+    
+    # Start the network
+    echo "Starting network '$NETWORK_NAME'..."
+    if virsh net-start "$NETWORK_NAME"; then
+        echo "✓ Network '$NETWORK_NAME' started successfully"
+    else
+        echo "✗ Failed to start network '$NETWORK_NAME'"
+        echo "Check logs: sudo journalctl -u libvirtd -n 50"
+        return 1
+    fi
+    
+    # Enable autostart
+    echo "Enabling autostart for network '$NETWORK_NAME'..."
+    if virsh net-autostart "$NETWORK_NAME"; then
+        echo "✓ Autostart enabled for '$NETWORK_NAME'"
+    else
+        echo "✗ Failed to enable autostart for '$NETWORK_NAME'"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Create external network (attacker side)
+echo "=== Creating External Network (br-external) ==="
+create_network "/tmp/br-external.xml" "br-external"
+
+# Create internal network (target side)
+echo -e "\n=== Creating Internal Network (br-internal) ==="
+create_network "/tmp/br-internal.xml" "br-internal"
+
+# Clean up temporary XML files (optional)
+# rm -f /tmp/br-external.xml /tmp/br-internal.xml
+```
+
+#### **Step 4: Verify Both Networks**
+
+```bash
+# Verify both networks exist and are active
+echo "=== Listing all networks ==="
+virsh net-list --all
+
+# Verify external network
+if virsh net-list --all | grep -q "br-external"; then
+    echo "✓ External network (br-external) is listed"
+    virsh net-info br-external
+else
+    echo "✗ External network (br-external) not found"
+fi
+
+# Verify internal network
+if virsh net-list --all | grep -q "br-internal"; then
+    echo "✓ Internal network (br-internal) is listed"
+    virsh net-info br-internal
+else
+    echo "✗ Internal network (br-internal) not found"
+fi
+
+# Check bridge interfaces
+echo -e "\n=== Bridge Interface Status ==="
+for BRIDGE in br-external br-internal; do
+    if ip link show "$BRIDGE" >/dev/null 2>&1; then
+        echo "✓ Bridge interface '$BRIDGE' exists"
+        ip a show "$BRIDGE"
+    else
+        echo "✗ Bridge interface '$BRIDGE' not found"
+    fi
+done
+
+# Check if network already exists
+if virsh net-info "$NETWORK_NAME" >/dev/null 2>&1; then
+    echo "⚠️  Network '$NETWORK_NAME' already exists"
+    echo "Checking if it's active..."
+    if virsh net-info "$NETWORK_NAME" | grep -q "Active:.*yes"; then
+        echo "Network is already active. Skipping creation."
+    else
+        echo "Network exists but is inactive. Starting it..."
+        virsh net-start "$NETWORK_NAME"
+    fi
+else
+    # Define the network (creates configuration in libvirt)
+    echo "Defining network '$NETWORK_NAME'..."
+    if virsh net-define "$NETWORK_XML"; then
+        echo "✓ Network defined successfully"
+    else
+        echo "✗ Failed to define network"
+        exit 1
+    fi
+
+    # Start the network (activates bridge and DHCP)
+    echo "Starting network '$NETWORK_NAME'..."
+    if virsh net-start "$NETWORK_NAME"; then
+        echo "✓ Network started successfully"
+    else
+        echo "✗ Failed to start network"
+        echo "Check logs: sudo journalctl -u libvirtd -n 50"
+        exit 1
+    fi
+
+    # Enable autostart (network starts automatically on host boot)
+    echo "Enabling autostart for network '$NETWORK_NAME'..."
+    if virsh net-autostart "$NETWORK_NAME"; then
+        echo "✓ Autostart enabled"
+    else
+        echo "✗ Failed to enable autostart"
+        exit 1
+    fi
+fi
+
+# Clean up temporary XML file (optional)
+# rm -f "$NETWORK_XML"
+```
+
+#### **Step 3: Verify Network Creation**
+
+```bash
+NETWORK_NAME="br-lab"
+
+# List all networks (should show both 'default' and 'br-lab')
+echo "=== Listing all networks ==="
+virsh net-list --all
+
+# Verify br-lab network is listed
+if virsh net-list --all | grep -q "$NETWORK_NAME"; then
+    echo "✓ Network '$NETWORK_NAME' is listed"
+else
+    echo "✗ Network '$NETWORK_NAME' not found"
+    exit 1
+fi
+
+# Show detailed network information
+echo -e "\n=== Network Information ==="
+virsh net-info "$NETWORK_NAME"
+
+# Verify network is active
+if virsh net-info "$NETWORK_NAME" | grep -q "Active:.*yes"; then
+    echo "✓ Network is active"
+else
+    echo "✗ Network is not active"
+    virsh net-start "$NETWORK_NAME"
+fi
+
+# View complete network XML configuration
+echo -e "\n=== Network XML Configuration ==="
+virsh net-dumpxml "$NETWORK_NAME"
+
+# Check bridge interface exists
+echo -e "\n=== Bridge Interface Status ==="
+if ip link show "$NETWORK_NAME" >/dev/null 2>&1; then
+    echo "✓ Bridge interface '$NETWORK_NAME' exists"
+    ip a show "$NETWORK_NAME"
+else
+    echo "✗ Bridge interface '$NETWORK_NAME' not found"
+    echo "Attempting to start network..."
+    virsh net-start "$NETWORK_NAME"
+    sleep 2
+    ip a show "$NETWORK_NAME"
+fi
+
+# Check bridge status (if brctl is available)
+echo -e "\n=== Bridge Details ==="
+if command -v brctl >/dev/null 2>&1; then
+    brctl show "$NETWORK_NAME" 2>/dev/null || echo "Bridge not found or brctl command failed"
+else
+    echo "brctl command not available (bridge-utils may not be installed)"
+fi
+
+# Verify DHCP service (dnsmasq) is running for this network
+echo -e "\n=== DHCP Service Status ==="
+if pgrep -f "dnsmasq.*$NETWORK_NAME" >/dev/null; then
+    echo "✓ dnsmasq is running for network '$NETWORK_NAME'"
+    ps aux | grep -E "dnsmasq.*$NETWORK_NAME" | grep -v grep
+else
+    echo "⚠️  dnsmasq process not found for network '$NETWORK_NAME'"
+    echo "This may be normal if network was just created. Check again after a few seconds."
+    sleep 2
+    pgrep -f "dnsmasq.*$NETWORK_NAME" && echo "✓ dnsmasq is now running" || echo "✗ dnsmasq still not running"
+fi
+
+# Check network connectivity (ping gateway)
+echo -e "\n=== Network Connectivity Test ==="
+if ping -c 1 -W 2 192.168.100.1 >/dev/null 2>&1; then
+    echo "✓ Can ping network gateway (192.168.100.1)"
+else
+    echo "⚠️  Cannot ping gateway (this is normal if no VMs are connected yet)"
+fi
+```
+
+**Expected Output**:
+
+```
+Name      State    Autostart   Persistent
+--------------------------------------------
+default   active   yes         yes
+br-lab    active   yes         yes
+```
+
+**Complete Verification Script**:
+
+```bash
+#!/bin/bash
+# Complete network verification script
+
+NETWORK_NAME="br-lab"
+
+echo "=== Comprehensive Network Verification ==="
+
+# Check if network exists
+if virsh net-info "$NETWORK_NAME" >/dev/null 2>&1; then
+    echo "✓ Network '$NETWORK_NAME' exists"
+    
+    # Check if active
+    if virsh net-info "$NETWORK_NAME" | grep -q "Active:.*yes"; then
+        echo "✓ Network is active"
+    else
+        echo "✗ Network is not active - starting it..."
+        virsh net-start "$NETWORK_NAME"
+    fi
+    
+    # Check bridge
+    if ip link show "$NETWORK_NAME" >/dev/null 2>&1; then
+        echo "✓ Bridge interface exists"
+    else
+        echo "✗ Bridge interface missing"
+    fi
+    
+    # Check DHCP
+    if pgrep -f "dnsmasq.*$NETWORK_NAME" >/dev/null; then
+        echo "✓ DHCP service running"
+    else
+        echo "⚠️  DHCP service not running (may start automatically)"
+    fi
+    
+    echo "✓ Network verification complete"
+else
+    echo "✗ Network '$NETWORK_NAME' does not exist"
+    echo "Run network creation steps first"
+    exit 1
+fi
+```
+
+#### **Step 4: Network Configuration Details**
+
+| Network Component | Configuration | Purpose |
+|------------------|---------------|---------|
+| **Network Name** | `br-lab` | libvirt network identifier |
+| **Bridge Interface** | `br-lab` | Linux bridge interface name |
+| **Network Range** | `192.168.100.0/24` | Subnet for lab VMs |
+| **Gateway IP** | `192.168.100.1` | libvirt host gateway (not routable) |
+| **DHCP Range** | `192.168.100.100-200` | Automatic IP assignment range |
+| **Static IP Range** | `192.168.100.10-99` | Reserved for manual static IPs |
+| **Forward Mode** | `isolated` | No access to host/internet |
+| **DNS** | Not provided | VMs must use static IPs or manual DNS |
+
+### **2.4. Network Configuration Options**
+
+#### **Option A: Using Isolated Network (Recommended for This Lab)**
+
+**Configuration**:
+```xml
+<network>
+  <name>br-lab</name>
+  <bridge name="br-lab"/>
+  <forward mode='isolated'/>
+  <ip address='192.168.100.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.100.100' end='192.168.100.200'/>
+    </dhcp>
+  </ip>
+</network>
+```
+
+**Characteristics**:
+- ✅ Complete isolation from host and internet
+- ✅ VMs can communicate with each other
+- ✅ Safe for security testing
+- ❌ No internet access (VMs cannot download updates)
+- ❌ No access to host network
+
+**Use When**: Security labs, penetration testing, complete isolation needed
+
+#### **Option B: Using Default NAT Network (virbr0)**
+
+**Configuration**: Already exists, no setup needed
+
+**Characteristics**:
+- ✅ Internet access through NAT
+- ✅ Access to host network
+- ✅ Automatic DHCP and DNS
+- ❌ Less secure (internet exposure)
+- ❌ VMs can reach external networks
+
+**Use When**: VMs need internet access, general-purpose use
+
+**To Use Default Network**:
+```bash
+# In virt-manager: Select "default" network when creating VM
+# Or via command line:
+virsh attach-interface <vm-name> --type network --source default --model virtio
+```
+
+#### **Option C: Custom NAT Network (Advanced)**
+
+If you want a custom NAT network (different IP range, still with internet access):
+
+```bash
+tee /tmp/br-custom-nat.xml <<EOF
+<network>
+  <name>br-custom-nat</name>
+  <bridge name="br-custom-nat"/>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <ip address='192.168.200.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.200.100' end='192.168.200.200'/>
+    </dhcp>
+  </ip>
+</network>
+EOF
+
+virsh net-define /tmp/br-custom-nat.xml
+virsh net-start br-custom-nat
+virsh net-autostart br-custom-nat
+```
+
+#### **Option D: Routed Network (Advanced)**
+
+For direct access to physical network (no NAT):
+
+```bash
+tee /tmp/br-routed.xml <<EOF
+<network>
+  <name>br-routed</name>
+  <bridge name="br-routed"/>
+  <forward mode='route' dev='eth0'/>
+  <ip address='192.168.1.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.1.100' end='192.168.1.200'/>
+    </dhcp>
+  </ip>
+</network>
+EOF
+```
+
+**Note**: Routed networks require proper network configuration and are more complex.
+
+### **2.5. Configuring VMs to Use Different Networks**
+
+#### **Method 1: During VM Creation (virt-manager)**
+
+1. Open virt-manager
+2. Create new VM or edit existing VM
+3. Go to "Network selection" step
+4. Choose network:
+   - **"default"** for NAT (internet access)
+   - **"br-lab"** for isolated lab network
+5. Select network model: `virtio` (recommended for performance)
+
+#### **Method 2: Via Command Line (virsh)**
+
+```bash
+# List current network interfaces for VM
+virsh domiflist <vm-name>
+
+# Remove existing network interface (if needed)
+virsh detach-interface <vm-name> --type network --mac <mac-address>
+
+# Attach VM to specific network
+virsh attach-interface <vm-name> --type network --source br-lab --model virtio --config
+
+# For persistent change (survives reboot), add --config flag
+# For immediate change (without --config), change takes effect immediately
+```
+
+#### **Method 3: Edit VM XML Directly**
+
+```bash
+# Edit VM configuration
+virsh edit <vm-name>
+
+# Find <interface> section and modify:
+<interface type='network'>
+  <source network='br-lab'/>  <!-- Change to 'default' or 'br-lab' -->
+  <model type='virtio'/>
+</interface>
+
+# Save and exit (libvirt validates XML automatically)
+```
+
+### **2.6. Network Troubleshooting and Verification**
+
+#### **Verify Network Connectivity**
+
+```bash
+# On Host: Check network status
+virsh net-list --all
+virsh net-info br-lab
+ip a show br-lab
+
+# On Host: Check DHCP leases
+virsh net-dhcp-leases br-lab
+
+# On VM: Check IP assignment
+# Linux: ip a or ifconfig
+# Windows: ipconfig
+
+# On VM: Test connectivity
+ping 192.168.100.1  # Gateway (should work on isolated network)
+ping 192.168.100.10 # Another VM (should work)
+ping 8.8.8.8        # Internet (should FAIL on isolated network, work on NAT)
+```
+
+#### **Common Network Issues**
+
+**Problem: VM not getting IP address**
+```bash
+# Check network is running
+virsh net-info br-lab
+
+# Restart network
+virsh net-destroy br-lab
+virsh net-start br-lab
+
+# Check dnsmasq process
+ps aux | grep dnsmasq
+
+# Restart libvirt (restarts dnsmasq)
+sudo systemctl restart libvirtd
+```
+
+**Problem: VMs cannot ping each other**
+```bash
+# Verify both VMs are on same network
+virsh domiflist <vm1-name>
+virsh domiflist <vm2-name>
+# Both should show same network (br-lab)
+
+# Check bridge connectivity
+brctl show br-lab
+# Should show both VM interfaces connected
+
+# Check VM firewalls (may block ping)
+# Linux: sudo ufw disable (temporarily for testing)
+# Windows: Disable Windows Firewall temporarily
+```
+
+**Problem: Want to switch VM between networks**
+```bash
+# Remove from current network
+virsh detach-interface <vm-name> --type network --mac <mac-address> --config
+
+# Add to new network
+virsh attach-interface <vm-name> --type network --source br-lab --model virtio --config
+
+# Reboot VM for changes to take effect
+```
+
+### **2.7. Network Configuration Summary**
+
+**For This Lab (Isolated Network)**:
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| **Network Name** | `br-lab` | libvirt identifier |
+| **Bridge** | `br-lab` | Linux bridge interface |
+| **Mode** | `isolated` | No host/internet access |
+| **Subnet** | `192.168.100.0/24` | Lab network range |
+| **Gateway** | `192.168.100.1` | libvirt host (not routable) |
+| **DHCP Range** | `192.168.100.100-200` | Automatic IPs |
+| **Static IPs** | `192.168.100.10-99` | Manual assignment |
+| **Internet Access** | ❌ No | Complete isolation |
+| **VM Communication** | ✅ Yes | VMs can talk to each other |
+
+**Default Network (For Reference)**:
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| **Network Name** | `default` | Pre-configured |
+| **Bridge** | `virbr0` | Auto-created |
+| **Mode** | `nat` | NAT with internet |
+| **Subnet** | `192.168.122.0/24` | Default range |
+| **Gateway** | `192.168.122.1` | libvirt host |
+| **DHCP Range** | `192.168.122.2-254` | Automatic |
+| **Internet Access** | ✅ Yes | Through NAT |
+| **VM Communication** | ✅ Yes | VMs can talk to each other |
+
+---
+
+## **3. Deploying Lab VMs**
+
+### **3.1. Attacker Machine: Kali Linux VM**
+
+#### **VM Specifications**
+
+| Resource | Recommended Allocation | Minimum (if resources limited) |
+|----------|----------------------|------------------------------|
+| **CPU** | 4 Cores | 2 Cores |
+| **RAM** | 8 GiB | 4 GiB |
+| **Disk** | 100 GiB (qcow2 format) | 50 GiB |
+| **Network** | br-lab (Static IP: 192.168.100.10 recommended) | br-lab |
+| **OS** | Kali Linux (Latest) | Kali Linux (Latest) |
+
+**Note**: Adjust these values based on your available host resources. If you have limited RAM, start with minimum allocations and increase as needed.
+
+#### **Installation Steps**
+
+1. **Download Kali Linux ISO**:
+   - Visit [kali.org/get-kali](https://www.kali.org/get-kali/)
+   - Download the latest ISO image
+
+2. **Create VM in virt-manager**:
+   ```bash
+   # Open virt-manager
+   virt-manager
+   ```
+   - Click "Create a new virtual machine"
+   - Select "Local install media (ISO image or CDROM)"
+   - Browse and select Kali Linux ISO
+   - Choose "Linux" → "Debian 11" or latest
+   - Allocate resources: 4 CPU, 8GB RAM, 100GB disk
+   - **Before finishing**: Check "Customize configuration before install"
+   - **Network Configuration** (Critical Step):
+     * Click "Network selection"
+     * **IMPORTANT**: Select **"br-lab"** network (not "default")
+     * This ensures VM is on isolated lab network
+     * Network model: Select **"virtio"** for best performance
+   - Click "Begin Installation"
+   
+   **Note**: If you see "default" network selected, change it to "br-lab" for this security lab. The "default" network provides internet access via NAT, while "br-lab" provides complete isolation.
+
+3. **Install Kali Linux**:
+   - Follow standard installation process
+   - Set up user account and password
+   - Complete installation and reboot
+
+4. **Post-Installation Configuration**:
+
+   **Update System**:
+   ```bash
+   # Update package lists
+   sudo apt update
+   
+   # Check if update was successful
+   if [ $? -eq 0 ]; then
+       echo "✓ Package lists updated"
+       # Upgrade system packages
+       sudo apt full-upgrade -y
+   else
+       echo "✗ Failed to update package lists"
+       echo "Check internet connection and try again"
+       exit 1
+   fi
+   ```
+
+   **Install PimpMyKali** (Essential for Kali VM optimization):
+   ```bash
+   # Navigate to home directory
+   cd ~ || exit 1
+   
+   # Check if pimpmykali directory already exists
+   if [ -d "pimpmykali" ]; then
+       echo "⚠️  pimpmykali directory already exists"
+       read -p "Remove existing directory and re-clone? (y/n) " -n 1 -r
+       echo
+       if [[ $REPLY =~ ^[Yy]$ ]]; then
+           rm -rf pimpmykali
+       else
+           cd pimpmykali
+       fi
+   fi
+   
+   # Clone repository if directory doesn't exist
+   if [ ! -d "pimpmykali" ]; then
+       echo "Cloning PimpMyKali repository..."
+       if git clone https://github.com/Dewalt-arch/pimpmykali.git; then
+           echo "✓ Repository cloned"
+           cd pimpmykali || exit 1
+       else
+           echo "✗ Failed to clone repository"
+           exit 1
+       fi
+   fi
+   
+   # Verify script exists and is executable
+   if [ -f "pimpmykali.sh" ]; then
+       # Make script executable (if not already)
+       chmod +x pimpmykali.sh
+       echo "✓ Running PimpMyKali setup..."
+       echo "Select menu option 'N' for new VM setup when prompted"
+       sudo ./pimpmykali.sh
+   else
+       echo "✗ pimpmykali.sh not found"
+       exit 1
+   fi
+   ```
+
+   **Install Villager AI + HexStrike Integration**:
+   ```bash
+   # Navigate to home directory
+   cd ~ || exit 1
+   
+   # Check if directory already exists
+   if [ -d "villager-ai-hexstrike-integration" ]; then
+       echo "⚠️  villager-ai-hexstrike-integration directory already exists"
+       cd villager-ai-hexstrike-integration
+   else
+       echo "Cloning Villager AI + HexStrike integration..."
+       if git clone https://github.com/Yenn503/villager-ai-hexstrike-integration.git; then
+           echo "✓ Repository cloned"
+           cd villager-ai-hexstrike-integration || exit 1
+       else
+           echo "✗ Failed to clone repository"
+           exit 1
+       fi
+   fi
+   
+   # Check if setup script exists
+   if [ -f "scripts/setup.sh" ]; then
+       chmod +x scripts/setup.sh
+       echo "Running setup script..."
+       ./scripts/setup.sh
+   else
+       echo "⚠️  setup.sh not found, checking for alternative setup methods"
+   fi
+   
+   # Check if start script exists
+   if [ -f "scripts/start_villager_proper.sh" ]; then
+       chmod +x scripts/start_villager_proper.sh
+       echo "Starting Villager AI framework..."
+       ./scripts/start_villager_proper.sh
+   else
+       echo "⚠️  start_villager_proper.sh not found"
+   fi
+   
+   # Verify installation
+   if [ -f "scripts/test_villager_setup.sh" ]; then
+       chmod +x scripts/test_villager_setup.sh
+       echo "Running verification tests..."
+       ./scripts/test_villager_setup.sh
+   else
+       echo "⚠️  test_villager_setup.sh not found"
+   fi
+   ```
+
+   **Install WebSploit** (Web Application Security Testing Platform):
+   ```bash
+   # WebSploit is a comprehensive web application security testing platform
+   # Visit https://websploit.org/ for latest installation instructions
+   
+   # Check if Docker is already installed
+   if command -v docker >/dev/null 2>&1; then
+       echo "✓ Docker is already installed"
+   else
+       echo "Installing Docker..."
+       sudo apt update
+       sudo apt install -y docker.io docker-compose
+       
+       # Verify Docker installation
+       if command -v docker >/dev/null 2>&1; then
+           echo "✓ Docker installed successfully"
+       else
+           echo "✗ Docker installation failed"
+           exit 1
+       fi
+   fi
+   
+   # Start and enable Docker service
+   sudo systemctl enable docker
+   sudo systemctl start docker
+   
+   # Verify Docker service is running
+   if sudo systemctl is-active --quiet docker; then
+       echo "✓ Docker service is running"
+   else
+       echo "✗ Docker service failed to start"
+       sudo systemctl status docker
+       exit 1
+   fi
+   
+   # Add user to docker group (requires logout/login to take effect)
+   CURRENT_USER="${USER:-$(whoami)}"
+   sudo usermod -aG docker "$CURRENT_USER"
+   echo "✓ User added to docker group"
+   echo "⚠️  You must log out and log back in for docker group to take effect"
+   echo "   Or use: newgrp docker (temporary)"
+   
+   # Clone WebSploit repository
+   cd ~ || exit 1
+   
+   if [ -d "websploit" ]; then
+       echo "⚠️  websploit directory already exists"
+       cd websploit
+   else
+       echo "Cloning WebSploit repository..."
+       if git clone https://github.com/websploit/websploit.git; then
+           echo "✓ Repository cloned"
+           cd websploit || exit 1
+       else
+           echo "✗ Failed to clone repository"
+           exit 1
+       fi
+   fi
+   
+   # Check for docker-compose.yml or installation instructions
+   if [ -f "docker-compose.yml" ]; then
+       echo "✓ Found docker-compose.yml"
+       echo "Starting WebSploit containers..."
+       # Note: After logging out/in, use: docker-compose up -d
+       # Or use: newgrp docker && docker-compose up -d
+       echo "Run: docker-compose up -d (after docker group is active)"
+   elif [ -f "README.md" ] || [ -f "INSTALL.md" ]; then
+       echo "✓ Found documentation"
+       echo "Please follow installation instructions in README.md or INSTALL.md"
+       echo "Visit https://websploit.org/ for official documentation"
+   else
+       echo "⚠️  No docker-compose.yml found"
+       echo "Please check WebSploit documentation: https://websploit.org/"
+   fi
+   
+   # Verify Docker is accessible (after group change)
+   # This will work after logout/login or using newgrp docker
+   if docker ps >/dev/null 2>&1; then
+       echo "✓ Docker is accessible"
+       docker ps
+   else
+       echo "⚠️  Docker not accessible yet (group change requires logout/login)"
+       echo "   Run: newgrp docker (temporary) or logout/login"
+   fi
+   ```
+
+   **Configure Static IP** (Optional but recommended):
+   ```bash
+   # Detect network configuration method
+   # Modern Kali uses netplan (Ubuntu-style)
+   
+   # Check for netplan configuration
+   if [ -d "/etc/netplan" ] && [ -n "$(ls -A /etc/netplan 2>/dev/null)" ]; then
+       echo "Using netplan for network configuration"
+       
+       # Find netplan config file
+       NETPLAN_FILE=$(ls /etc/netplan/*.yaml 2>/dev/null | head -1)
+       
+       if [ -n "$NETPLAN_FILE" ]; then
+           echo "Found netplan config: $NETPLAN_FILE"
+           echo "Backing up original config..."
+           sudo cp "$NETPLAN_FILE" "${NETPLAN_FILE}.backup"
+           
+           echo "Edit the file to set static IP:"
+           echo "  sudo nano $NETPLAN_FILE"
+           echo ""
+           echo "Example configuration:"
+           echo "  network:"
+           echo "    version: 2"
+           echo "    renderer: networkd"
+           echo "    ethernets:"
+           echo "      eth0:  # Replace with your interface name"
+           echo "        dhcp4: no"
+           echo "        addresses:"
+           echo "          - 192.168.100.10/24"
+           echo "        gateway4: 192.168.100.1"
+           echo "        nameservers:"
+           echo "          addresses: [8.8.8.8, 8.8.4.4]"
+           echo ""
+           echo "After editing, apply changes:"
+           echo "  sudo netplan apply"
+       else
+           echo "No netplan config file found"
+       fi
+   # Check for traditional /etc/network/interfaces
+   elif [ -f "/etc/network/interfaces" ]; then
+       echo "Using /etc/network/interfaces for network configuration"
+       echo "Backing up original config..."
+       sudo cp /etc/network/interfaces /etc/network/interfaces.backup
+       
+       echo "Edit the file to set static IP:"
+       echo "  sudo nano /etc/network/interfaces"
+       echo ""
+       echo "Example configuration:"
+       echo "  auto eth0"
+       echo "  iface eth0 inet static"
+       echo "    address 192.168.100.10"
+       echo "    netmask 255.255.255.0"
+       echo "    gateway 192.168.100.1"
+       echo "    dns-nameservers 8.8.8.8 8.8.4.4"
+       echo ""
+       echo "After editing, restart networking:"
+       echo "  sudo systemctl restart networking"
+   else
+       echo "⚠️  Unknown network configuration method"
+       echo "Check your network interface:"
+       ip a
+   fi
+   ```
+
+5. **Verify Network Connectivity**:
+   ```bash
+   # Test connectivity to other VMs
+   ping 192.168.200.20  # Metasploitable Windows (through pfSense)
+   ping 192.168.200.21  # Metasploitable Ubuntu (through pfSense)
+   ping 192.168.200.30  # Windows DC (through pfSense)
+   ```
+
+#### **Kali Linux VM Overview**
+
+The Kali Linux VM serves as the centralized attacker platform with all necessary tools:
+
+- **AI Tools**: Villager AI Framework + HexStrike AI MCP (150+ security tools)
+- **Web Application Security**: WebSploit platform (Docker containers) for comprehensive web app testing
+- **Kali Optimization**: PimpMyKali for tool fixes and optimization
+- **Penetration Testing Tools**: Complete suite of Web, Network, and AD security tools
+- **MCP Integration**: Connects to AI agents (Cursor, Claude Desktop, VS Code Copilot) via Model Context Protocol
+
+### **3.2. Firewall/Router: pfSense VM**
+
+pfSense is an enterprise-grade firewall/router that separates the attacker network from target networks, enabling realistic firewall evasion practice.
+
+#### **VM Specifications**
+
+| Component | Specification |
+|-----------|--------------|
+| **OS** | pfSense CE (Community Edition) |
+| **RAM** | 1-2GB (minimum), 2GB (recommended) |
+| **CPU** | 2 cores (minimum), 2-4 cores (recommended) |
+| **Disk** | 20GB (qcow2 format) |
+| **Network Interfaces** | 2 NICs required (WAN + LAN) |
+| **WAN IP** | 192.168.100.1 (br-external network) |
+| **LAN IP** | 192.168.200.1 (br-internal network) |
+
+#### **Step 1: Download pfSense ISO**
+
+```bash
+# Create download directory
+mkdir -p "${HOME}/Downloads/pfsense"
+
+# Download pfSense CE ISO (latest stable version)
+# Check https://www.pfsense.org/download/ for latest version
+PFSENSE_VERSION="2.7.2"
+PFSENSE_ISO="pfSense-CE-${PFSENSE_VERSION}-RELEASE-amd64.iso"
+PFSENSE_URL="https://atxfiles.pfsense.org/mirror/downloads/pfSense-CE-${PFSENSE_VERSION}-RELEASE-amd64.iso"
+
+echo "Downloading pfSense ISO..."
+curl -L --progress-bar -o "${HOME}/Downloads/pfsense/${PFSENSE_ISO}" "${PFSENSE_URL}"
+
+# Verify download
+if [ -f "${HOME}/Downloads/pfsense/${PFSENSE_ISO}" ]; then
+    echo "✓ pfSense ISO downloaded successfully"
+    ls -lh "${HOME}/Downloads/pfsense/${PFSENSE_ISO}"
+else
+    echo "✗ Download failed"
+    exit 1
+fi
+```
+
+**Note**: If the download URL changes, visit [pfSense Downloads](https://www.pfsense.org/download/) to get the latest ISO URL.
+
+#### **Step 2: Create pfSense VM**
+
+```bash
+# Set VM parameters
+VM_NAME="pfsense"
+VM_RAM="2048"  # 2GB RAM
+VM_CPUS="2"
+VM_DISK_SIZE="20"  # 20GB
+DISK_PATH="${HOME}/VMs/${VM_NAME}/${VM_NAME}.qcow2"
+ISO_PATH="${HOME}/Downloads/pfsense/pfSense-CE-2.7.2-RELEASE-amd64.iso"
+
+# Create VM directory
+mkdir -p "$(dirname "$DISK_PATH")"
+
+# Create disk image
+qemu-img create -f qcow2 "$DISK_PATH" "${VM_DISK_SIZE}G"
+
+# Create VM with virt-install
+virt-install \
+    --name "$VM_NAME" \
+    --ram "$VM_RAM" \
+    --vcpus "$VM_CPUS" \
+    --disk path="$DISK_PATH",format=qcow2,size="$VM_DISK_SIZE" \
+    --cdrom "$ISO_PATH" \
+    --network network=br-external,model=virtio \
+    --network network=br-internal,model=virtio \
+    --graphics vnc,listen=0.0.0.0 \
+    --noautoconsole \
+    --os-type generic \
+    --os-variant generic
+
+echo "✓ pfSense VM created"
+echo "Connect using: virt-viewer $VM_NAME"
+```
+
+#### **Step 3: Install pfSense**
+
+1. **Boot from ISO**: The VM will boot from the pfSense ISO automatically
+2. **Installation**:
+   - Select "Install pfSense" from the boot menu
+   - Accept default installation options
+   - Choose "Auto (UFS) BIOS" for partitioning
+   - Confirm installation
+   - Wait for installation to complete
+   - Reboot when prompted
+
+3. **Initial Configuration**:
+   - After reboot, pfSense will detect network interfaces
+   - Assign interfaces:
+     - **WAN**: First interface (connects to br-external)
+     - **LAN**: Second interface (connects to br-internal)
+   - Configure WAN IP: `192.168.100.1/24`
+   - Configure LAN IP: `192.168.200.1/24`
+   - Set admin password
+   - Complete setup wizard
+
+#### **Step 4: Configure pfSense Firewall Rules**
+
+Access pfSense web interface: `https://192.168.200.1` (from internal network) or `https://192.168.100.1` (from external network)
+
+**Default Login**:
+- Username: `admin`
+- Password: (the password you set during installation)
+
+**Configure Firewall Rules for Evasion Practice**:
+
+1. **LAN Rules** (Internal Network → External):
+   - Navigate to: **Firewall → Rules → LAN**
+   - **Default Rule**: Allow all traffic (for initial testing)
+   - **Restrictive Rule** (for evasion practice):
+     - Block ICMP (ping)
+     - Block common ports (22, 23, 80, 443, 445, 3389)
+     - Allow only specific protocols/ports as needed
+     - Enable logging for blocked traffic
+
+2. **WAN Rules** (External Network → Internal):
+   - Navigate to: **Firewall → Rules → WAN**
+   - **Default**: Block all incoming traffic from WAN
+   - **For Testing**: Allow specific ports/protocols to practice evasion
+
+3. **NAT Configuration**:
+   - Navigate to: **Firewall → NAT → Port Forward**
+   - Configure port forwarding rules as needed for testing
+
+4. **Enable Logging**:
+   - Navigate to: **Status → System Logs → Firewall**
+   - Enable logging for all firewall rules
+   - This helps track evasion attempts
+
+#### **Step 5: Verify pfSense Configuration**
+
+```bash
+# From Kali VM (external network)
+ping -c 3 192.168.100.1  # Should work (pfSense WAN interface)
+
+# From target VM (internal network)
+ping -c 3 192.168.200.1  # Should work (pfSense LAN interface)
+
+# Test firewall blocking (from Kali)
+# These should be blocked if firewall rules are configured:
+nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
+```
+
+#### **pfSense VM Overview**
+
+- **Purpose**: Firewall/router separating attacker and target networks
+- **Network Position**: Between br-external (Kali) and br-internal (targets)
+- **Evasion Practice**: Configure firewall rules to block traffic, requiring evasion techniques
+- **Realistic Scenario**: Simulates enterprise perimeter defense
+
+**Evasion Techniques to Practice**:
+- Packet fragmentation
+- Protocol tunneling (SSH, DNS, ICMP)
+- Traffic obfuscation
+- Port knocking
+- Timing attacks
+- Firewall rule enumeration
+
+---
+
+### **3.3. Vulnerable Targets: Metasploitable 3**
+
+#### **Metasploitable 3 (Windows Build)**
+
+| Resource | Recommended Allocation | Minimum (if resources limited) |
+|----------|----------------------|------------------------------|
+| **CPU** | 4 Cores | 2 Cores |
+| **RAM** | 6 GiB | 4 GiB |
+| **Disk** | 80 GiB | 60 GiB |
+| **Network** | br-internal (Static IP: 192.168.200.20 recommended) | br-internal |
+| **OS** | Windows 2008 R2 | Windows 2008 R2 |
+
+#### **Metasploitable 3 (Ubuntu Build)**
+
+| Resource | Recommended Allocation | Minimum (if resources limited) |
+|----------|----------------------|------------------------------|
+| **CPU** | 4 Cores | 2 Cores |
+| **RAM** | 6 GiB | 4 GiB |
+| **Disk** | 80 GiB | 60 GiB |
+| **Network** | br-internal (Static IP: 192.168.200.21 recommended) | br-internal |
+| **OS** | Ubuntu | Ubuntu |
+
+#### **Installation Steps**
+
+1. **Install Prerequisites on Host**:
+
+   **For Arch Linux**:
+   ```bash
+   sudo pacman -S vagrant packer git
+   vagrant plugin install vagrant-libvirt
+   ```
+
+   **For Ubuntu/Debian**:
+   ```bash
+   sudo apt install vagrant packer git
+   vagrant plugin install vagrant-libvirt
+   ```
+
+2. **Build Metasploitable 3 VMs**:
+   ```bash
+   # Navigate to a suitable directory for building VMs
+   BUILD_DIR="${HOME}/metasploitable3-build"
+   mkdir -p "$BUILD_DIR"
+   cd "$BUILD_DIR" || exit 1
+   
+   # Check if repository already exists
+   if [ -d "metasploitable3" ]; then
+       echo "⚠️  metasploitable3 directory already exists"
+       cd metasploitable3
+       git pull  # Update if needed
+   else
+       echo "Cloning Metasploitable 3 repository..."
+       if git clone https://github.com/rapid7/metasploitable3.git; then
+           echo "✓ Repository cloned"
+           cd metasploitable3 || exit 1
+       else
+           echo "✗ Failed to clone repository"
+           exit 1
+       fi
+   fi
+   
+   # Verify Vagrant is installed and libvirt plugin is available
+   if ! command -v vagrant >/dev/null 2>&1; then
+       echo "✗ Vagrant is not installed"
+       exit 1
+   fi
+   
+   # Check for libvirt provider
+   if vagrant plugin list | grep -q vagrant-libvirt; then
+       echo "✓ vagrant-libvirt plugin is installed"
+   else
+       echo "✗ vagrant-libvirt plugin not found"
+       echo "Install it with: vagrant plugin install vagrant-libvirt"
+       exit 1
+   fi
+   
+   # Build Windows version (takes several hours - be patient!)
+   echo "Building Metasploitable 3 Windows VM..."
+   echo "⚠️  This will take several hours. Do not interrupt the process."
+   echo "The VM will be built in the background."
+   
+   if vagrant up win2k8 --provider=libvirt; then
+       echo "✓ Windows VM built successfully"
+   else
+       echo "✗ Windows VM build failed"
+       echo "Check logs and ensure you have sufficient disk space and resources"
+       exit 1
+   fi
+   
+   # Build Ubuntu version
+   echo "Building Metasploitable 3 Ubuntu VM..."
+   echo "⚠️  This will also take some time."
+   
+   if vagrant up ubuntu --provider=libvirt; then
+       echo "✓ Ubuntu VM built successfully"
+   else
+       echo "✗ Ubuntu VM build failed"
+       echo "Check logs and ensure you have sufficient disk space and resources"
+       exit 1
+   fi
+   
+   # Verify VMs were created
+   echo "Verifying VMs were created..."
+   vagrant status
+   virsh list --all | grep metasploitable
+   ```
+
+3. **Connect to br-lab Network**:
+   - Open virt-manager
+   - For each Metasploitable VM:
+     * Right-click VM → "Open" → Click "i" icon (Show virtual hardware details)
+     * Select "NIC: Network interface" → Click "Remove Hardware" (if connected to wrong network)
+     * Click "Add Hardware" → "Network"
+     * **Network source**: Select "br-lab" (not "default")
+     * **Device model**: Select "virtio"
+     * Click "Finish"
+   - Reboot VMs to apply network changes
+   
+   **Alternative (Command Line)**:
+   ```bash
+   # Check current network
+   virsh domiflist <metasploitable-vm-name>
+   
+   # Remove old network interface (note MAC address first)
+   virsh detach-interface <vm-name> --type network --mac <mac-address> --config
+   
+   # Add to br-lab network
+   virsh attach-interface <vm-name> --type network --source br-lab --model virtio --config
+   
+   # Reboot VM
+   virsh reboot <vm-name>
+   ```
+
+4. **Configure Static IPs** (Optional):
+   - **Windows**: Network settings → Set static IP 192.168.200.20
+   - **Ubuntu**: Edit `/etc/netplan/` or `/etc/network/interfaces` → Set static IP 192.168.200.21
+
+5. **Default Credentials**:
+   - **Windows**: `vagrant/vagrant`
+   - **Ubuntu**: `vagrant/vagrant`
+
+### **3.3. Active Directory Environment**
+
+#### **Windows Server 2019 Domain Controller**
+
+| Resource | Recommended Allocation | Minimum (if resources limited) |
+|----------|----------------------|------------------------------|
+| **CPU** | 4 Cores | 2 Cores |
+| **RAM** | 8 GiB | 4 GiB |
+| **Disk** | 100 GiB | 60 GiB |
+| **Network** | br-internal (Static IP: 192.168.200.30) | br-internal |
+| **OS** | Windows Server 2019 Datacenter | Windows Server 2019 Datacenter |
+
+**Configuration Steps**:
+
+1. **Install Windows Server 2019**:
+   - Download evaluation ISO from Microsoft
+   - Create VM in virt-manager with above specifications
+   - Select "Windows Server 2019 Datacenter (Desktop Experience)"
+   - **Network Configuration** (Critical):
+     * Before finishing installation, check "Customize configuration before install"
+     * In network settings: Select **"br-lab"** network (not "default")
+     * Network model: Select **"virtio"** (requires VirtIO drivers)
+   - Complete installation
+
+2. **Install VirtIO Drivers** (Essential for KVM performance):
+   ```bash
+   # On host: Download virtio-win.iso
+   # Create directory for downloads (if it doesn't exist)
+   DOWNLOAD_DIR="${HOME}/Downloads"
+   mkdir -p "$DOWNLOAD_DIR"
+   
+   # Download virtio-win.iso with progress and error handling
+   VIRTIO_URL="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"
+   VIRTIO_FILE="${DOWNLOAD_DIR}/virtio-win.iso"
+   
+   echo "Downloading virtio-win.iso..."
+   if curl -L --progress-bar -o "$VIRTIO_FILE" "$VIRTIO_URL"; then
+       echo "✓ Download complete: $VIRTIO_FILE"
+       
+       # Verify file was downloaded and has content
+       if [ -f "$VIRTIO_FILE" ] && [ -s "$VIRTIO_FILE" ]; then
+           FILE_SIZE=$(du -h "$VIRTIO_FILE" | cut -f1)
+           echo "✓ File size: $FILE_SIZE"
+           echo "✓ Ready to attach to Windows VM"
+       else
+           echo "✗ Download failed or file is empty"
+           exit 1
+       fi
+   else
+       echo "✗ Download failed. Check internet connection and try again."
+       echo "Alternative: Download manually from: $VIRTIO_URL"
+       exit 1
+   fi
+   
+   # Note: File location is $HOME/Downloads/virtio-win.iso
+   # In virt-manager: 
+   #   1. Shut down Windows VM
+   #   2. Open VM details → Add Hardware → Storage
+   #   3. Select "Select or create custom storage" → Browse
+   #   4. Navigate to $HOME/Downloads/virtio-win.iso
+   #   5. Device type: CDROM
+   #   6. Start VM
+   #   7. In Windows: Open CD drive and run virtio-win-gt-x64.msi
+   ```
+
+3. **Configure Static IP**:
+   - Open Network Settings
+   - Set IP: `192.168.200.30`
+   - Subnet: `255.255.255.0`
+   - Gateway: `192.168.100.1`
+   - DNS: `127.0.0.1` (will change after AD install)
+
+4. **Install Active Directory Domain Services**:
+   - Open Server Manager
+   - Add Roles and Features
+   - Select: **Active Directory Domain Services**, **DNS Server**, **DHCP Server**
+   - Complete installation
+
+5. **Promote to Domain Controller**:
+   - Click notification flag in Server Manager
+   - Select "Promote this server to a domain controller"
+   - Choose "Add a new forest"
+   - Domain name: `pentestlab.local`
+   - Set Directory Services Restore Mode (DSRM) password
+   - Complete promotion (server will reboot)
+
+6. **Post-Promotion Configuration**:
+   - After reboot, change DNS to `127.0.0.1` (localhost)
+   - Create test users and groups in Active Directory Users and Computers
+   - Example users: `john.doe`, `jane.smith`, `svc_web`, `admin_user`
+
+#### **Windows 10 Clients (x2)**
+
+| Resource | Recommended Allocation (each) | Minimum (if resources limited) |
+|----------|----------------------------|------------------------------|
+| **CPU** | 2 Cores | 1-2 Cores |
+| **RAM** | 6 GiB | 4 GiB |
+| **Disk** | 80 GiB | 50 GiB |
+| **Network** | br-internal (Static IPs: 192.168.200.31, 192.168.200.32) | br-internal |
+| **OS** | Windows 10 | Windows 10 |
+
+**Note**: You can start with just one Windows 10 client if resources are limited. Add the second client later when you have more resources available.
+
+**Configuration Steps**:
+
+1. **Install Windows 10**:
+   - Download evaluation ISO from Microsoft
+   - Create VM in virt-manager
+   - **Network Configuration** (Critical):
+     * Before finishing, check "Customize configuration before install"
+     * In network settings: Select **"br-lab"** network (not "default")
+     * Network model: Select **"virtio"** (requires VirtIO drivers)
+   - Complete installation
+
+2. **Install VirtIO Drivers**:
+   - Attach virtio-win.iso to VM
+   - Install drivers from CD drive
+
+3. **Configure Network**:
+   - Set static IP: `192.168.200.31` (first client) or `192.168.200.32` (second client)
+   - Subnet: `255.255.255.0`
+   - Gateway: `192.168.100.1`
+   - **DNS**: `192.168.200.30` (Domain Controller IP - critical!)
+
+4. **Join Domain**:
+   - Right-click "This PC" → Properties
+   - Click "Change settings" → "Change"
+   - Select "Domain" → Enter: `pentestlab.local`
+   - Enter domain administrator credentials
+   - Reboot to complete domain join
+
+5. **Verify Domain Join**:
+   - Log in with domain user: `pentestlab\john.doe`
+   - Verify domain membership: `whoami /all`
+
+#### **Active Directory Lab Topology**
+
+```mermaid
+graph TB
+    subgraph "Lab Network - 192.168.100.0/24"
+        Kali[Kali Linux VM<br/>192.168.100.10<br/>AI Tools, WebSploit, AD Tools]
+        
+        subgraph "ACTIVE DIRECTORY<br/>Domain: pentestlab.local"
+            DC[Windows Server 2019<br/>Domain Controller<br/>192.168.200.30]
+            Win10_1[Windows 10 Client #1<br/>192.168.200.31]
+            Win10_2[Windows 10 Client #2<br/>192.168.200.32]
+        end
+        
+        subgraph "NETWORK TARGETS"
+            MetaWin[Metasploitable 3<br/>Windows Build<br/>192.168.200.20]
+            MetaUbuntu[Metasploitable 3<br/>Ubuntu Build<br/>192.168.200.21]
+        end
+    end
+    
+    DC -->|Domain Trust| Win10_1
+    DC -->|Domain Trust| Win10_2
+    
+    Kali -->|AD Enumeration| DC
+    Kali -->|Lateral Movement| Win10_1
+    Kali -->|Lateral Movement| Win10_2
+    Kali -->|Network Attacks| MetaWin
+    Kali -->|Network Attacks| MetaUbuntu
+    Kali -->|Web App Testing| MetaWin
+    Kali -->|Web App Testing| MetaUbuntu
+    
+    style Kali fill:#557C94,stroke:#3d5a6b,stroke-width:3px,color:#fff
+    style DC fill:#0078d4,stroke:#005a9e,stroke-width:3px,color:#fff
+    style Win10_1 fill:#0078d4,stroke:#005a9e,stroke-width:2px,color:#fff
+    style Win10_2 fill:#0078d4,stroke:#005a9e,stroke-width:2px,color:#fff
+    style MetaWin fill:#ff6b35,stroke:#cc5529,stroke-width:2px,color:#fff
+    style MetaUbuntu fill:#e95420,stroke:#c34113,stroke-width:2px,color:#fff
+```
+
+---
+
+## **4. Practical Lab Scenarios**
+
+### **4.1. Web Application Security Practice Scenario**
+
+**Purpose**: Practice OWASP Top 10 vulnerabilities and web application security testing using WebSploit.
+
+**Active VMs**: `Kali Linux` (with WebSploit), `Metasploitable 3 (Windows)`, `Metasploitable 3 (Ubuntu)`
+
+**Workflow**:
+
+```mermaid
+sequenceDiagram
+    participant AI as AI Agent (Cursor/Claude)
+    participant Villager as Villager AI
+    participant HexStrike as HexStrike MCP
+    participant Kali as Kali Linux VM
+    participant WebSploit as WebSploit Platform
+    participant Targets as Metasploitable VMs
+    
+    AI->>Villager: Initiate web app security assessment
+    Villager->>HexStrike: Execute network scanning
+    HexStrike->>Kali: Run nmap/rustscan
+    Kali->>Targets: Discover web services
+    
+    Villager->>WebSploit: Launch web app testing
+    WebSploit->>Targets: Comprehensive web vulnerability scanning
+    WebSploit->>Villager: Report vulnerabilities found
+    
+    Villager->>HexStrike: Test specific vulnerabilities
+    HexStrike->>Kali: Execute sqlmap, nuclei, etc.
+    Kali->>Targets: Exploit discovered vulnerabilities
+    
+    Villager->>AI: Generate comprehensive web security report
+```
+
+**Resource Usage** (Recommended):
+- **CPU**: 12 cores (Kali: 4, MetaWin: 4, MetaUbuntu: 4)
+- **RAM**: 20 GiB (Kali: 8, MetaWin: 6, MetaUbuntu: 6)
+- **Disk**: 260 GiB total
+
+**Minimum Resource Usage** (if resources limited):
+- **CPU**: 8 cores (Kali: 2, MetaWin: 2, MetaUbuntu: 2)
+- **RAM**: 12 GiB (Kali: 4, MetaWin: 4, MetaUbuntu: 4)
+- **Disk**: 170 GiB total
+
+**Note**: Adjust resource allocations based on your available hardware. You can run fewer VMs or reduce per-VM resources if needed.
+
+### **4.2. Network Security Practice Scenario**
 
 **Purpose**: Reconnaissance, enumeration, and exploitation against diverse Linux and Windows targets.
-**Active VMs**: `pfSense`, `Kali Linux`, `Metasploitable 3 (Windows)`, `Metasploitable 3 (Ubuntu)`
 
-```
-+---------------------+
-|     Internet /      |
-|   Home Router (DHCP)|
-+----------+----------+
-           |
-           | (Physical NIC / Bridge: br-wan)
-           |
-+----------+----------+
-|   Arch Linux Host   |
-|     (KVM/Qemu)      |
-+----------+----------+
-           |
-           | (Virtual Bridge: br-wan)
-           |
-+----------+----------+
-|   pfSense Firewall  |
-| (Virtual Machine)   |
-|---------------------|
-| WAN Interface       |
-| (DHCP from Home Rtr)|
-| LAN Interface       |
-+----------+----------+
-           |
-           | (Virtual Bridge: br-lan)
-           |
-+-----------------------------------------------------------------------------------+
-|                           LAN Network (10.0.0.0/24)                               |
-+-----------------------------------------------------------------------------------+
-           |                           |                           |
-+----------+----------+  +------------+------------+  +-----------+-----------+
-| Kali Linux         |  | Metasploitable 3        |  | Metasploitable 3     |
-| (Attacker Machine) |  | (Windows Build)         |  | (Ubuntu Build)       |
-| (DHCP from pfSense)|  | (DHCP from pfSense)     |  | (DHCP from pfSense)  |
-+--------------------+  +-------------------------+  +----------------------+
+**Active VMs**: `Kali Linux`, `Metasploitable 3 (Windows)`, `Metasploitable 3 (Ubuntu)`
+
+**Workflow**:
+
+```mermaid
+graph LR
+    subgraph "Network Security Workflow"
+        Recon[Reconnaissance<br/>Nmap, Masscan<br/>Rustscan]
+        Enum[Enumeration<br/>NetExec, Enum4linux<br/>SMBMap, Responder]
+        Exploit[Exploitation<br/>Metasploit, Impacket<br/>Custom Exploits]
+        Post[Post-Exploitation<br/>Privilege Escalation<br/>Lateral Movement]
+    end
+    
+    Recon --> Enum
+    Enum --> Exploit
+    Exploit --> Post
+    
+    style Recon fill:#4a90e2,stroke:#2d5aa0,stroke-width:2px,color:#fff
+    style Enum fill:#50c878,stroke:#2d7a4a,stroke-width:2px,color:#fff
+    style Exploit fill:#ff6b35,stroke:#cc5529,stroke-width:2px,color:#fff
+    style Post fill:#9b59b6,stroke:#7d3c98,stroke-width:2px,color:#fff
 ```
 
-  * **Total Resources for this Scenario:**  
-    * **CPU:** 14 Cores (pfSense: 2, Kali: 4, Metasploitable 3 Win: 4, Metasploitable 3 Ubuntu: 4\)  
-    * **RAM:** 24 GiB (pfSense: 4, Kali: 8, Metasploitable 3 Win: 6, Metasploitable 3 Ubuntu: 6\)  
-    * **Disk Space:** 310 GiB (pfSense: 50, Kali: 100, Metasploitable 3 Win: 80, Metasploitable 3 Ubuntu: 80\)  
-  * **Purpose:** This setup allows you to practice network reconnaissance, vulnerability scanning, and exploitation against diverse Windows and Linux targets within your segmented LAN, all controlled by pfSense.
+**Resource Usage** (Recommended):
+- **CPU**: 12 cores (Kali: 4, MetaWin: 4, MetaUbuntu: 4)
+- **RAM**: 20 GiB (Kali: 8, MetaWin: 6, MetaUbuntu: 6)
+- **Disk**: 260 GiB total
+
+**Minimum Resource Usage** (if resources limited):
+- **CPU**: 8 cores (Kali: 2, MetaWin: 2, MetaUbuntu: 2)
+- **RAM**: 12 GiB (Kali: 4, MetaWin: 4, MetaUbuntu: 4)
+- **Disk**: 170 GiB total
+
+**Note**: Adjust resource allocations based on your available hardware. You can run fewer VMs or reduce per-VM resources if needed.
+
+### **4.3. Active Directory Security Practice Scenario**
+
+**Purpose**: Simulate enterprise AD environment for domain enumeration, privilege escalation, and lateral movement.
+
+**Active VMs**: `Kali Linux`, `Windows Server 2019 DC`, `Windows 10 Clients (x2)`
+
+**AD Attack Chain**:
+
+```mermaid
+graph TB
+    subgraph "AD Attack Chain"
+        Initial[Initial Access<br/>Phishing, SMB, RDP]
+        Enum[AD Enumeration<br/>BloodHound, Impacket<br/>NetExec, LDAP]
+        Creds[Credential Harvesting<br/>Responder, Mimikatz<br/>LSASS Dump]
+        PrivEsc[Privilege Escalation<br/>Kerberoasting, AS-REP Roasting<br/>Unconstrained Delegation]
+        Lateral[Lateral Movement<br/>Pass-the-Hash, Pass-the-Ticket<br/>WMI, PSExec]
+        Persist[Persistence<br/>Golden Ticket, Silver Ticket<br/>DCSync, Scheduled Tasks]
+    end
+    
+    Initial --> Enum
+    Enum --> Creds
+    Creds --> PrivEsc
+    PrivEsc --> Lateral
+    Lateral --> Persist
+    
+    style Initial fill:#e74c3c,stroke:#c0392b,stroke-width:2px,color:#fff
+    style Enum fill:#3498db,stroke:#2980b9,stroke-width:2px,color:#fff
+    style Creds fill:#f39c12,stroke:#d68910,stroke-width:2px,color:#fff
+    style PrivEsc fill:#9b59b6,stroke:#7d3c98,stroke-width:2px,color:#fff
+    style Lateral fill:#1abc9c,stroke:#16a085,stroke-width:2px,color:#fff
+    style Persist fill:#e67e22,stroke:#d35400,stroke-width:2px,color:#fff
+```
+
+**Resource Usage** (Recommended):
+- **CPU**: 12 cores (Kali: 4, DC: 4, Win10 x2: 4)
+- **RAM**: 28 GiB (Kali: 8, DC: 8, Win10 x2: 12)
+- **Disk**: 360 GiB total
+
+**Minimum Resource Usage** (if resources limited):
+- **CPU**: 8 cores (Kali: 2, DC: 2, Win10 x1: 2) - Start with one Win10 client
+- **RAM**: 16 GiB (Kali: 4, DC: 4, Win10 x1: 4)
+- **Disk**: 210 GiB total
+
+**Note**: You can start with a single Windows 10 client and add more later. Adjust all resource allocations based on your available hardware.
+
+### **4.4. Firewall Evasion Practice Scenario**
+
+**Purpose**: Practice bypassing enterprise firewalls (pfSense) using various evasion techniques, simulating real-world red team scenarios where perimeter defenses must be circumvented.
+
+**Active VMs**: `Kali Linux`, `pfSense Firewall`, `Metasploitable 3 (Windows)`, `Metasploitable 3 (Ubuntu)`, `Windows AD Environment`
+
+**Network Architecture**:
+- **External Network** (br-external): Kali Linux (192.168.100.10)
+- **pfSense Firewall**: WAN (192.168.100.1), LAN (192.168.200.1)
+- **Internal Network** (br-internal): All target VMs (192.168.200.0/24)
+
+**Workflow**:
+
+```mermaid
+sequenceDiagram
+    participant Kali as Kali Linux<br/>(External Network)
+    participant pfSense as pfSense Firewall
+    participant Targets as Target VMs<br/>(Internal Network)
+    
+    Kali->>pfSense: Initial reconnaissance scan
+    pfSense->>Kali: Firewall blocks/limits responses
+    
+    Kali->>pfSense: Attempt evasion technique #1<br/>(Packet fragmentation)
+    pfSense->>Targets: Forward fragmented packets
+    Targets->>pfSense: Response
+    pfSense->>Kali: Return response
+    
+    Kali->>pfSense: Attempt evasion technique #2<br/>(Protocol tunneling - DNS)
+    pfSense->>Targets: DNS tunnel traffic
+    Targets->>pfSense: DNS responses
+    pfSense->>Kali: Return DNS tunnel data
+    
+    Kali->>pfSense: Attempt evasion technique #3<br/>(Traffic obfuscation)
+    pfSense->>Targets: Obfuscated traffic
+    Targets->>pfSense: Responses
+    pfSense->>Kali: Return obfuscated data
+    
+    Kali->>Targets: Successful bypass achieved
+```
+
+**Evasion Techniques to Practice**:
+
+1. **Packet Fragmentation**:
+   ```bash
+   # Fragment packets to bypass IDS/IPS
+   nmap -f -p 80,443 192.168.200.20
+   
+   # Use Nmap fragmentation with timing
+   nmap -f --mtu 24 -p 22,80,443 192.168.200.0/24
+   ```
+
+2. **Protocol Tunneling**:
+   ```bash
+   # DNS Tunneling
+   dnscat2 --dns server=192.168.200.1,port=53
+   
+   # ICMP Tunneling
+   ping -c 1 -s 64 192.168.200.20  # ICMP echo with data
+   
+   # SSH Tunneling (if SSH allowed)
+   ssh -D 1080 user@192.168.200.20
+   ```
+
+3. **Traffic Obfuscation**:
+   ```bash
+   # Use proxychains with multiple proxies
+   proxychains nmap -sT -p 80,443 192.168.200.20
+   
+   # Encode traffic
+   base64 < payload.txt | nc 192.168.200.20 80
+   ```
+
+4. **Port Knocking**:
+   ```bash
+   # Sequence of connection attempts to "knock" ports
+   for port in 1000 2000 3000; do
+       nmap -p $port 192.168.200.20
+   done
+   # Then attempt actual connection
+   ```
+
+5. **Timing Attacks**:
+   ```bash
+   # Slow scan to avoid detection
+   nmap -T1 -p- 192.168.200.0/24
+   
+   # Randomize scan order
+   nmap --randomize-hosts -p 80,443 192.168.200.0/24
+   ```
+
+6. **Firewall Rule Enumeration**:
+   ```bash
+   # Test which ports are open through firewall
+   nmap -p- --reason 192.168.200.20
+   
+   # Test firewall response to different packet types
+   nmap -sS -sU -sA -sW -sM -p 80,443 192.168.200.20
+   ```
+
+**pfSense Configuration for Evasion Practice**:
+
+1. **Initial Setup** (Permissive - for learning):
+   - Allow all traffic initially
+   - Enable logging for all rules
+   - Monitor firewall logs during testing
+
+2. **Progressive Hardening** (Advanced):
+   - Block ICMP (ping)
+   - Block common ports (22, 23, 80, 443, 445, 3389)
+   - Enable IDS/IPS rules
+   - Configure rate limiting
+   - Enable deep packet inspection
+
+3. **Logging and Analysis**:
+   - Monitor firewall logs: **Status → System Logs → Firewall**
+   - Analyze blocked traffic patterns
+   - Identify which evasion techniques succeed
+   - Adjust firewall rules based on findings
+
+**Resource Usage** (Recommended):
+- **CPU**: 14 cores (Kali: 4, pfSense: 2, MetaWin: 4, MetaUbuntu: 4)
+- **RAM**: 22 GiB (Kali: 8, pfSense: 2, MetaWin: 6, MetaUbuntu: 6)
+- **Disk**: 280 GiB total
+
+**Minimum Resource Usage** (if resources limited):
+- **CPU**: 10 cores (Kali: 2, pfSense: 1, MetaWin: 2, MetaUbuntu: 2)
+- **RAM**: 14 GiB (Kali: 4, pfSense: 1, MetaWin: 4, MetaUbuntu: 4)
+- **Disk**: 180 GiB total
+
+**Learning Objectives**:
+- Understand firewall rule behavior and responses
+- Master packet fragmentation and reassembly
+- Practice protocol tunneling techniques
+- Learn traffic obfuscation methods
+- Develop skills in firewall rule enumeration
+- Analyze firewall logs to understand blocking patterns
 
 ---
 
-## Web Application Security Practice Scenario
+### **4.5. AI-Enhanced Penetration Testing Workflow**
 
-**Purpose**: Practice OWASP Top 10 vulnerabilities on intentionally insecure web apps.
-**Active VMs**: `pfSense`, `Kali Linux`, `Docker Host VM` (Juice Shop, DVWA, WebGoat)
+**How AI Tools Enhance Testing**:
 
-```
-+---------------------+
-|     Internet /      |
-|   Home Router (DHCP)|
-+----------+----------+
-           |
-           | (Physical NIC / Bridge: br-wan)
-           |
-+----------+----------+
-|   Arch Linux Host   |
-|     (KVM/Qemu)      |
-+----------+----------+
-           |
-           | (Virtual Bridge: br-wan)
-           |
-+----------+----------+
-|   pfSense Firewall  |
-| (Virtual Machine)   |
-|---------------------|
-| WAN Interface       |
-| (DHCP from Home Rtr)|
-| LAN Interface       |
-| DMZ Interface       |
-+----------+----------+
-           |                         |
-           |                         |
-(Virtual Bridge: br-lan)   (Virtual Bridge: br-dmz)
-           |                         |
-+----------+----------+   +----------+-----------+
-| Kali Linux         |   | Docker Host VM        |
-| (Attacker Machine) |   | (e.g., Ubuntu Server) |
-| (DHCP from pfSense)|   | (DHCP from pfSense)   |
-+--------------------+   |                       |
-                         | +-------------------+ |
-                         | | OWASP Juice Shop  | |
-                         | | DVWA              | |
-                         | | WebGoat           | |
-                         | +-------------------+ |
-                         +-----------------------+
+```mermaid
+graph TB
+    subgraph "AI-Enhanced Testing Workflow"
+        Prompt[AI Agent Prompt<br/>Cursor/Claude Desktop]
+        
+        subgraph "Decision Engine"
+            Analyze[Target Analysis<br/>Villager AI Intelligence]
+            Select[Tool Selection<br/>HexStrike Fast Execution]
+            Optimize[Parameter Optimization<br/>Context-Aware]
+        end
+        
+        subgraph "Execution Layer"
+            Fast[Fast Operations<br/>HexStrike MCP<br/>150+ Tools]
+            Complex[Complex Operations<br/>Villager Framework<br/>Multi-Step Orchestration]
+        end
+        
+        subgraph "Results"
+            Report[Vulnerability Report<br/>AI-Generated Analysis]
+            Chain[Attack Chain Discovery<br/>Automated Correlation]
+        end
+    end
+    
+    Prompt --> Analyze
+    Analyze --> Select
+    Select --> Optimize
+    Optimize --> Fast
+    Optimize --> Complex
+    Fast --> Report
+    Complex --> Report
+    Report --> Chain
+    
+    style Prompt fill:#2d5aa0,stroke:#1a3d6b,stroke-width:3px,color:#fff
+    style Analyze fill:#50c878,stroke:#2d7a4a,stroke-width:2px,color:#fff
+    style Select fill:#ff6b35,stroke:#cc5529,stroke-width:2px,color:#fff
+    style Report fill:#9b59b6,stroke:#7d3c98,stroke-width:2px,color:#fff
 ```
 
-  * **Total Resources for this Scenario:**  
-    * **CPU:** 8 Cores (pfSense: 2, Kali: 4, Docker Host: 2\)  
-    * **RAM:** 16 GiB (pfSense: 4, Kali: 8, Docker Host: 4\)  
-    * **Disk Space:** 200 GiB (pfSense: 50, Kali: 100, Docker Host: 50\)  
-  * **Purpose:** This configuration provides your attacker machine and the necessary web application targets in the DMZ, enabling you to focus on web vulnerability exploitation.
+**Example AI-Powered Commands**:
+
+```python
+# Example: AI agent (Cursor) using HexStrike for fast enumeration
+# User: "I'm a security researcher testing my own company's lab network 192.168.100.0/24. 
+#        Please use hexstrike-ai MCP tools to perform a comprehensive security assessment."
+
+# AI Agent automatically:
+# 1. Uses HexStrike for network scanning (nmap, rustscan)
+# 2. Uses HexStrike for service enumeration (netexec, enum4linux-ng)
+# 3. Uses WebSploit for comprehensive web application security testing
+# 4. Uses HexStrike for vulnerability scanning (nuclei, nikto)
+# 5. Uses Villager AI for complex multi-step attack chain development
+# 6. Generates comprehensive report with AI analysis
+```
 
 ---
 
-## Active Directory Security Practice Scenario
+## **5. Lab Management Best Practices**
 
-**Purpose**: Simulate an enterprise Active Directory environment.
-**Active VMs**: `pfSense`, `Kali Linux`, `Windows Server 2019`, `Windows 10 Client(s)`
+### **5.1. Snapshot Management**
 
-```
-+---------------------+
-|     Internet /      |
-|   Home Router (DHCP)|
-+----------+----------+
-           |
-           | (Physical NIC / Bridge: br-wan)
-           |
-+----------+----------+
-|   Arch Linux Host   |
-|     (KVM/Qemu)      |
-+----------+----------+
-           |
-           | (Virtual Bridge: br-wan)
-           |
-+----------+----------+
-|   pfSense Firewall  |
-| (Virtual Machine)   |
-|---------------------|
-| WAN Interface       |
-| (DHCP from Home Rtr)|
-| LAN Interface       |
-+----------+----------+
-           |
-           | (Virtual Bridge: br-lan)
-           |
-+-----------------------------------------------------------------------------------+
-|                           LAN Network (10.0.0.0/24)                               |
-+-----------------------------------------------------------------------------------+
-           |                           |                           |
-+----------+----------+  +------------+------------+  +-----------+-----------+
-| Kali Linux         |  | Windows Server 2019     |  | Windows 10 Clients   |
-| (Attacker Machine) |  | (Domain Controller)     |  | (Domain-joined)      |
-| (DHCP from pfSense)|  | (10.0.0.10 - Static IP) |  | (DHCP from pfSense)  |
-+--------------------+  +-------------------------+  +----------------------+
+Snapshots are essential for quick resets and safe experimentation.
+
+**When to Take Snapshots**:
+- Immediately after clean OS installation
+- After configuring major services (AD DS, etc.)
+- Before attempting potentially destructive exploits
+- Before major system updates
+
+**How to Manage Snapshots**:
+```bash
+# In virt-manager:
+# 1. Select VM → Snapshots icon
+# 2. Click "Create" → Name snapshot (e.g., "Clean Install", "Post-AD-Setup")
+# 3. To revert: Select snapshot → Click "Revert"
 ```
 
-  * **Total Resources for this Scenario:**  
-    * **CPU:** 14 Cores (pfSense: 2, Kali: 4, Windows Server DC: 4, Windows 10 Client x2: 2+2=4)  
-    * **RAM:** 32 GiB (pfSense: 4, Kali: 8, Windows Server DC: 8, Windows 10 Client x2: 6+6=12)  
-    * **Disk Space:** 410 GiB (pfSense: 50, Kali: 100, Windows Server DC: 100, Windows 10 Client x2: 80+80=160)  
-  * **Purpose:** This setup provides a realistic Active Directory environment for practicing domain enumeration, privilege escalation, and lateral movement techniques within a Windows enterprise simulation.
+### **5.2. Resource Management**
+
+Prioritize running only necessary VMs for your current scenario. Resource usage varies based on your allocations:
+
+| Scenario | Active VMs | Recommended RAM | Recommended CPU | Minimum RAM | Minimum CPU |
+|----------|-----------|----------------|----------------|-------------|-------------|
+| **Web App Security** | Kali (with WebSploit), MetaWin, MetaUbuntu | 20 GiB | 12 cores | 12 GiB | 8 cores |
+| **Network Security** | Kali, MetaWin, MetaUbuntu | 20 GiB | 12 cores | 12 GiB | 8 cores |
+| **AD Security** | Kali, DC, Win10 x2 | 28 GiB | 12 cores | 16 GiB | 8 cores |
+| **AD Security (Minimal)** | Kali, DC, Win10 x1 | 16 GiB | 8 cores | 12 GiB | 6 cores |
+| **Full Lab** | All VMs | 40+ GiB | 18 cores | 24+ GiB | 12 cores |
+
+**Resource Management Tips**:
+- **Start Small**: Begin with minimum resource allocations and increase as needed
+- **Run Selectively**: Only power on VMs needed for your current practice scenario
+- **Monitor Usage**: Watch host resource usage and adjust VM allocations accordingly
+- **Scale Down**: If you have limited resources, reduce per-VM allocations or run fewer VMs
+
+**Monitor Resources**:
+```bash
+# On host - Check overall system resources
+htop
+free -h
+df -h
+
+# Check individual VM resource usage
+virsh dominfo <vm-name>  # Check VM resource allocation
+virsh domstats <vm-name>  # Check VM current resource usage
+```
+
+### **5.3. Network Isolation and Security**
+
+**Critical Security Measures**:
+- ✅ Use isolated virtual network (br-lab) - completely separate from host network
+- ✅ Never store sensitive data on lab VMs
+- ✅ Keep host system fully patched
+- ✅ Use snapshots before risky operations
+- ✅ Monitor network traffic for anomalies
+
+**Network Isolation Principles**:
+- **Isolated Bridge**: br-lab is isolated from host network and internet
+- **No Internet Access**: VMs cannot reach internet (by design for security)
+- **No Host Network Access**: VMs cannot access host system network
+- **Internal Communication Only**: VMs can only communicate with each other on br-lab
+- **Safe Testing**: Complete isolation ensures safe penetration testing
+- **Default Network Available**: The default NAT network (virbr0) still exists but is not used for this lab
+
+**Important**: All VMs in this lab should be connected to **"br-lab"** network, not the **"default"** network. The default network provides internet access via NAT, which is not desired for this isolated security lab.
+
+### **5.4. AI Tools Configuration**
+
+**Villager AI + HexStrike Setup**:
+
+1. **Install on Kali VM** (as detailed in Section 3.1)
+2. **Configure MCP** for your AI client (Cursor/Claude Desktop):
+   ```json
+   {
+     "mcpServers": {
+       "villager-proper": {
+         "command": "python3",
+         "args": ["/path/to/villager-ai-hexstrike-integration/src/villager_ai/mcp/villager_proper_mcp.py"],
+         "description": "Villager AI Framework for complex orchestration"
+       },
+       "hexstrike-ai": {
+         "command": "python3",
+         "args": ["/path/to/hexstrike-ai/hexstrike_mcp.py"],
+         "description": "HexStrike AI MCP - 150+ security tools"
+       }
+     }
+   }
+   ```
+3. **Test AI Integration**:
+   ```bash
+   # On Kali VM
+   ./scripts/test_villager_setup.sh
+   ```
+
+**PimpMyKali Configuration**:
+- Run on fresh Kali installation: `sudo ./pimpmykali.sh` → Select option 'N'
+- Fixes common Kali issues and optimizes for VM environment
+- Installs missing tools and dependencies
+
+### **5.5. Storage Management**
+
+**Storage Allocation Strategy**:
+- **Use qcow2 format**: Thin provisioning saves space (disk grows as needed)
+- **Monitor regularly**: Check disk usage frequently: `df -h` (or your VM storage location)
+- **Clean up snapshots**: Remove old snapshots to reclaim space
+- **Adjust as needed**: Allocate disk space based on your available storage
+- **Start conservative**: Begin with smaller disk allocations, expand later if needed
+
+**Disk Space Optimization**:
+```bash
+# Check VM disk usage
+virsh domblklist <vm-name>
+
+# Compress qcow2 images
+qemu-img convert -O qcow2 -c <source.qcow2> <compressed.qcow2>
+
+# Remove old snapshots
+virsh snapshot-delete <vm-name> <snapshot-name>
+```
 
 ---
 
-## MAL Network / Exploit Development Practice Scenario
+## **6. Troubleshooting**
 
-**Purpose**: Isolated environment for malware analysis and exploit development.
-**Active VMs**: `pfSense` (optional), `REMnux VM`, `FlareVM`
+### **6.1. Libvirt Network Issues**
 
+#### **Problem: Network Creation Fails**
+
+**Symptoms**: `virsh net-define` or `virsh net-start` fails
+
+**Solutions**:
+```bash
+# Check libvirt service status
+sudo systemctl status libvirtd
+
+# Restart libvirt service
+sudo systemctl restart libvirtd
+
+# Check for existing network with same name
+virsh net-list --all
+virsh net-undefine br-lab  # If exists, remove it first
+
+# Check libvirt logs
+sudo journalctl -u libvirtd -n 50
 ```
-+---------------------+
-|     Internet /      |
-|   Home Router (DHCP)|
-+----------+----------+
-           |
-           | (Physical NIC / Bridge: br-wan)
-           |
-+----------+----------+
-|   Arch Linux Host   |
-|     (KVM/Qemu)      |
-+----------+----------+
-           |
-           | (Virtual Bridge: br-wan)
-           |
-+----------+----------+
-|   pfSense Firewall  |
-| (Virtual Machine)   |
-|---------------------|
-| WAN Interface       |
-| (DHCP from Home Rtr)|
-| MAL Int             |
-+----------+----------+
-           |
-           | (Virtual Bridge: br-isolated)
-           |
-+-----------------------------------------------------------------------------------+
-|                           MAL Network (192.168.100.0/24)                          |
-+-----------------------------------------------------------------------------------+
-           |                                     |
-+----------+----------+             +------------+------------+
-| REMnux VM (Linux)  |             | FlareVM (Windows)      |
-| (Docker Container  |             | (Malware Analysis)     |
-| Host)              |             | (DHCP from pfSense)    |
-| (DHCP from pfSense)|             +------------------------+
-+--------------------+
+
+#### **Problem: `/etc/libvirt/network.conf` or `firewall_backend` Error**
+
+**Symptoms**: Error messages about `network.conf` or `firewall_backend` configuration
+
+**Solutions**:
+
+**For Arch Linux**:
+```bash
+# Create network configuration directory if missing
+sudo mkdir -p /etc/libvirt
+
+# Create or edit network.conf
+sudo tee /etc/libvirt/network.conf <<EOF
+# Network configuration for libvirt
+# Default firewall backend
+firewall_backend = 'iptables'
+EOF
+
+# Alternative: Use nftables instead
+sudo tee /etc/libvirt/network.conf <<EOF
+firewall_backend = 'nftables'
+EOF
+
+# Restart libvirt
+sudo systemctl restart libvirtd
+
+# Verify configuration
+virsh net-list --all
 ```
-  * **Total Resources for this Scenario:**  
-    * **CPU:** 8 Cores (pfSense: 2, REMnux: 2, FlareVM: 4\)  
-    * **RAM:** 16 GiB (pfSense: 4, REMnux: 4, FlareVM: 8\)  
-    * **Disk Space:** 370 GiB (pfSense: 50, REMnux: 120, FlareVM: 200\)  
-  * **Purpose:** This highly isolated setup provides dedicated Linux and Windows environments for safely analyzing malware, reverse engineering binaries, and developing exploits without risk to your host or other lab segments.
+
+**For Ubuntu/Debian**:
+```bash
+# Check if network.conf exists
+ls -la /etc/libvirt/
+
+# Create network.conf if missing
+sudo mkdir -p /etc/libvirt
+sudo tee /etc/libvirt/network.conf <<EOF
+firewall_backend = 'iptables'
+EOF
+
+# Restart libvirt
+sudo systemctl restart libvirtd
+```
+
+**If iptables is not available**:
+```bash
+# Install iptables
+sudo pacman -S iptables  # Arch
+sudo apt install iptables  # Ubuntu/Debian
+
+# Or use nftables
+sudo pacman -S nftables  # Arch
+sudo apt install nftables  # Ubuntu/Debian
+
+# Update network.conf to use nftables
+sudo tee /etc/libvirt/network.conf <<EOF
+firewall_backend = 'nftables'
+EOF
+
+sudo systemctl restart libvirtd
+```
+
+#### **Problem: Bridge Interface Not Created**
+
+**Symptoms**: `br-lab` bridge interface doesn't exist after network creation
+
+**Solutions**:
+```bash
+# Check if bridge module is loaded
+lsmod | grep bridge
+
+# Load bridge module if missing
+sudo modprobe bridge
+
+# Manually create bridge (temporary)
+sudo ip link add name br-lab type bridge
+sudo ip link set br-lab up
+
+# Then define libvirt network again
+virsh net-define /tmp/br-lab.xml
+virsh net-start br-lab
+```
+
+#### **Problem: VMs Cannot Communicate on Network**
+
+**Symptoms**: VMs get IP addresses but cannot ping each other
+
+**Solutions**:
+```bash
+# Check bridge status
+ip a show br-lab
+brctl show br-lab
+
+# Check if VMs are connected to bridge
+virsh domiflist <vm-name>
+
+# Verify network is active
+virsh net-info br-lab
+
+# Check firewall rules (may block traffic)
+sudo iptables -L -n -v
+# Or for nftables
+sudo nft list ruleset
+
+# Temporarily disable firewall for testing
+sudo systemctl stop firewalld  # If using firewalld
+# Or flush iptables rules (be careful!)
+sudo iptables -F
+```
+
+### **6.2. VM Creation and Installation Issues**
+
+#### **Problem: VM Fails to Start**
+
+**Symptoms**: VM created but won't boot or start
+
+**Solutions**:
+```bash
+# Check VM configuration
+virsh dominfo <vm-name>
+
+# Check VM logs
+virsh dumpxml <vm-name> | less
+
+# Check host resources
+free -h
+df -h
+
+# Verify KVM modules loaded
+lsmod | grep kvm
+
+# Check for errors in libvirt logs
+sudo journalctl -u libvirtd -n 100
+```
+
+#### **Problem: Windows VMs Have No Network After Installation**
+
+**Symptoms**: Windows VM installed but network adapter not working
+
+**Solutions**:
+```bash
+# Ensure VirtIO drivers are installed
+# Download virtio-win.iso and attach to VM
+
+# In virt-manager:
+# 1. Shut down VM
+# 2. Add Hardware → Storage → Select virtio-win.iso
+# 3. Start VM
+# 4. In Windows: Device Manager → Update network adapter driver
+# 5. Point to virtio-win CD drive
+
+# Verify network adapter model in VM
+virsh dumpxml <vm-name> | grep -A 5 interface
+# Should show: <model type='virtio'/>
+```
+
+#### **Problem: Kali Linux VM Performance is Slow**
+
+**Symptoms**: Kali VM is sluggish or unresponsive
+
+**Solutions**:
+```bash
+# Check VM resource allocation
+virsh dominfo kali-vm
+
+# Increase CPU cores (if host has available)
+virsh setvcpus kali-vm 4 --config --maximum
+virsh setvcpus kali-vm 4 --config
+
+# Increase RAM
+virsh setmaxmem kali-vm 8G --config
+virsh setmem kali-vm 8G --config
+
+# Enable CPU mode for better performance
+virsh edit kali-vm
+# Add or modify: <cpu mode='host-passthrough'/>
+
+# Check host CPU usage
+htop
+```
+
+### **6.3. Network Connectivity Issues**
+
+#### **Problem: VMs Not Getting IP Addresses**
+
+**Symptoms**: VMs show no IP address or "Network unreachable"
+
+**Solutions**:
+```bash
+# Check DHCP service on libvirt network
+virsh net-dhcp-leases br-lab
+
+# Verify network is running
+virsh net-info br-lab
+
+# Restart network
+virsh net-destroy br-lab
+virsh net-start br-lab
+
+# Check dnsmasq process (libvirt uses it for DHCP)
+ps aux | grep dnsmasq
+
+# Restart libvirt to restart dnsmasq
+sudo systemctl restart libvirtd
+
+# Manually configure static IP on VM if DHCP fails
+# Kali: Edit /etc/netplan/ or /etc/network/interfaces
+# Windows: Network Settings → Manual IP configuration
+```
+
+#### **Problem: Cannot Ping Between VMs**
+
+**Symptoms**: VMs have IPs but cannot ping each other
+
+**Solutions**:
+```bash
+# Check if VMs are on same network
+# Verify IP addresses are in same subnet (192.168.100.0/24)
+
+# Check bridge connectivity
+brctl show br-lab
+# Should show all VM interfaces connected
+
+# Test from host
+ping 192.168.100.10  # Kali
+ping 192.168.200.20  # Metasploitable Windows (through pfSense)
+ping 192.168.200.30  # Windows DC (through pfSense)
+
+# Check VM firewall (may block ping)
+# On Windows: Disable Windows Firewall temporarily for testing
+# On Linux: sudo ufw disable (temporarily)
+
+# Verify network isolation mode
+virsh net-dumpxml br-external | grep forward
+virsh net-dumpxml br-internal | grep forward
+# Both should show: <forward mode='isolated'/>
+```
+
+#### **Problem: DNS Resolution Fails in Windows AD**
+
+**Symptoms**: Cannot resolve domain names or join domain
+
+**Solutions**:
+```bash
+# Verify Windows DC DNS is working
+# On DC: Check DNS service is running
+# On DC: Verify DNS zones exist (pentestlab.local)
+
+# On Windows clients: Verify DNS points to DC
+# DNS should be: 192.168.200.30 (DC IP)
+# NOT: 192.168.100.1 or 8.8.8.8
+
+# Test DNS from client
+nslookup pentestlab.local
+# Should resolve to 192.168.200.30
+
+# Check time synchronization (critical for AD)
+# DC and clients must have same time
+# Use: w32tm /query /status on Windows
+```
+
+### **6.4. AI Tools Issues**
+
+#### **Problem: Villager AI Not Starting**
+
+**Symptoms**: Villager AI framework fails to start or errors
+
+**Solutions**:
+```bash
+# Check Python version (requires 3.8+)
+python3 --version
+
+# Verify dependencies installed
+cd villager-ai-hexstrike-integration
+pip3 install -r requirements.txt
+
+# Check for missing system dependencies
+# Install if needed:
+sudo apt install python3-dev python3-pip  # Ubuntu/Debian
+sudo pacman -S python python-pip  # Arch
+
+# Check MCP configuration paths
+# Verify paths in mcp_servers.json are correct
+
+# Review logs
+./scripts/test_villager_setup.sh
+# Check output for specific errors
+
+# Verify virtual environment (if used)
+source venv/bin/activate  # If using venv
+```
+
+#### **Problem: HexStrike Tools Not Found**
+
+**Symptoms**: HexStrike MCP reports tools not found
+
+**Solutions**:
+```bash
+# Install missing security tools
+# Refer to HexStrike README for complete tool list
+
+# Common tools to install:
+sudo apt install nmap gobuster nuclei sqlmap nikto  # Ubuntu/Debian
+sudo pacman -S nmap gobuster nuclei sqlmap nikto  # Arch
+
+# Verify tools are in PATH
+which nmap
+which gobuster
+which nuclei
+
+# Check HexStrike configuration
+# Verify tool paths in hexstrike configuration files
+```
+
+#### **Problem: WebSploit Not Starting or Accessible**
+
+**Symptoms**: WebSploit containers fail to start or web interface not accessible
+
+**Solutions**:
+```bash
+# Check Docker service status
+sudo systemctl status docker
+
+# Start Docker if not running
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Verify user is in docker group
+groups | grep docker
+# If not, add user: sudo usermod -aG docker $USER
+# Log out and log back in
+
+# Check WebSploit containers
+cd ~/websploit
+docker ps -a  # List all containers
+docker-compose ps  # Check WebSploit services
+
+# View WebSploit logs
+docker-compose logs
+
+# Restart WebSploit
+docker-compose down
+docker-compose up -d
+
+# Check port conflicts
+sudo netstat -tlnp | grep 8080  # Or whatever port WebSploit uses
+# If port is in use, modify docker-compose.yml to use different port
+
+# Verify WebSploit installation
+# Check WebSploit documentation for specific setup requirements
+# Ensure all prerequisites are installed
+```
+
+#### **Problem: MCP Connection Fails**
+
+**Symptoms**: AI client (Cursor/Claude) cannot connect to MCP servers
+
+**Solutions**:
+```bash
+# Verify MCP server paths in configuration
+# Check JSON syntax in mcp_servers.json
+
+# Test MCP server manually
+python3 /path/to/villager_proper_mcp.py
+python3 /path/to/hexstrike_mcp.py
+
+# Check Python executable path
+which python3
+# Use full path in MCP configuration if needed
+
+# Verify file permissions
+chmod +x /path/to/mcp_scripts.py
+
+# Check for Python virtual environment issues
+# Use system Python or ensure venv is activated
+```
+
+### **6.5. Performance Issues**
+
+#### **Problem: Host System Becomes Slow When VMs Running**
+
+**Symptoms**: Host becomes unresponsive with multiple VMs
+
+**Solutions**:
+```bash
+# Check resource usage
+htop
+free -h
+df -h
+
+# Reduce VM resource allocation
+# Power off unnecessary VMs
+# Reduce RAM/CPU for non-critical VMs
+
+# Check for swap usage (indicates low RAM)
+free -h
+# If swap is being used, reduce VM RAM or add more host RAM
+
+# Optimize VM disk I/O
+# Use qcow2 with appropriate cache settings
+virsh edit <vm-name>
+# Set: <driver name='qemu' type='qcow2' cache='writeback'/>
+```
+
+#### **Problem: VM Disk Space Running Out**
+
+**Symptoms**: VM reports low disk space
+
+**Solutions**:
+```bash
+# Check actual disk usage on host
+qemu-img info <vm-disk.qcow2>
+
+# Compact qcow2 image (reclaim unused space)
+qemu-img convert -O qcow2 <source.qcow2> <compressed.qcow2>
+# Replace original after verification
+
+# Remove old snapshots
+virsh snapshot-list <vm-name>
+virsh snapshot-delete <vm-name> <snapshot-name>
+
+# Expand VM disk if needed
+qemu-img resize <vm-disk.qcow2> +50G
+# Then expand partition inside VM (using gparted or disk management)
+```
+
+### **6.6. General Troubleshooting Commands**
+
+**Useful Diagnostic Commands**:
+```bash
+# Check libvirt status
+sudo systemctl status libvirtd
+virsh list --all
+virsh net-list --all
+
+# Check network interfaces
+ip a
+brctl show
+
+# Check VM status
+virsh dominfo <vm-name>
+virsh domiflist <vm-name>
+virsh domblklist <vm-name>
+
+# View VM console (if configured)
+virsh console <vm-name>
+
+# Check libvirt logs
+sudo journalctl -u libvirtd -f
+sudo journalctl -u libvirtd -n 100
+
+# Check QEMU processes
+ps aux | grep qemu
+
+# Check disk usage (adjust path to your VM storage location)
+df -h
+du -sh /var/lib/libvirt/images/*  # Default location
+# Or: du -sh /path/to/your/vm-storage/*  # Custom location
+
+# Check memory usage
+free -h
+virsh dominfo <vm-name> | grep memory
+```
 
 ---
 
-## **5\. Key Lab Management Practices**
+## **7. Security and Legal Considerations**
 
-These practices are essential for maintaining a functional, secure, and efficient cybersecurity lab. Adhering to them will maximize your learning experience and protect your host system.
+### **⚠️ Important Security Notes**
 
-### **5.1. Snapshot Management (Crucial\!)**
+- **Isolated Environment**: This lab is designed for isolated testing only
+- **No Production Data**: Never use production data or credentials
+- **Authorized Testing Only**: Only test systems you own or have explicit written permission to test
+- **Host Security**: Keep host system patched and secure
+- **Network Isolation**: Lab network is isolated from host network
 
-Snapshots are an indispensable feature for any cybersecurity lab. They allow you to quickly save the state of a virtual machine at a particular point in time and revert to it later. This is invaluable for resetting vulnerable targets to a clean, known-good state after an exploit, or if a system becomes unstable during an exercise.
+### **Legal and Ethical Use**
 
-* **How to Take Snapshots:**  
-  * In virt-manager, select the VM you wish to snapshot.  
-  * Click the "Snapshots" icon (it typically looks like a camera).  
-  * Click the "Create" button, give it a descriptive name (e.g., "Clean Install," "Post-AD Setup," "Pre-Exploit-X"), and an optional description.  
-* **When to Take Snapshots:**  
-  * Immediately after a clean operating system installation.  
-  * After installing and configuring major services (e.g., after promoting the Domain Controller, after setting up Docker and web apps).  
-  * Before attempting any potentially destructive exploits or significant system changes.  
-  * Before major updates to a VM that might break its intended vulnerable state.  
-* **Reverting to a Snapshot:** Simply select the desired snapshot from the list and click "Revert." The VM will return to the exact state it was in when the snapshot was taken.
+✅ **Authorized Activities**:
+- Penetration testing with written authorization
+- Bug bounty programs (within scope)
+- Security research on owned systems
+- Educational purposes in controlled environments
+- Red team exercises with organizational approval
 
-### **5.2. Lab Isolation and Security**
+❌ **Prohibited Activities**:
+- Unauthorized access to systems
+- Testing without permission
+- Malicious activities
+- Data theft or exfiltration
+- Any illegal activities
 
-The primary goal of a virtual lab is to provide a safe, isolated environment for practicing offensive security. Strict adherence to isolation principles is paramount to prevent accidental network exposure or compromise of your host machine or home network.
+---
 
-* **Strict Segregation:** The use of isolated virtual networks (br-lan, br-dmz, br-isolated) is the most critical security measure. These networks prevent accidental traffic or exploits from your lab reaching your host machine or other devices on your home/production network.  
-* **Firewall Rules:** Regularly review and refine your pfSense firewall rules. Ensure that traffic is only allowed where explicitly needed for a lab exercise. Always apply a "default-deny" principle, meaning only explicitly permitted traffic is allowed.  
-* **No Sensitive Data:** **Never** store any sensitive personal or work data on your lab VMs, especially the vulnerable targets. Assume that any data on these VMs could be compromised.  
-* **Host Security:** Keep your Arch Linux host system fully patched and secure. This mitigates potential hypervisor-level vulnerabilities (like VM escapes) that could allow a compromised guest VM to affect the host system or other virtual machines.
+## **8. Additional Resources**
 
-### **5.3. Resource Management**
+### **Documentation**
 
-With 32GB of physical RAM and 32GB of swap memory, you have a robust system. However, running all VMs simultaneously at their maximum recommended allocations will likely exceed your physical RAM, causing the system to rely heavily on swap. While swap provides a buffer, it is significantly slower than RAM and can impact performance.
+- **Villager AI + HexStrike Integration**: [GitHub Repository](https://github.com/Yenn503/villager-ai-hexstrike-integration)
+- **HexStrike AI MCP**: [GitHub Repository](https://github.com/0x4m4/hexstrike-ai)
+- **WebSploit**: [Official Website](https://websploit.org/)
+- **PimpMyKali**: [GitHub Repository](https://github.com/Dewalt-arch/pimpmykali)
+- **Metasploitable 3**: [GitHub Repository](https://github.com/rapid7/metasploitable3)
+- **QEMU/KVM Documentation**: [QEMU.org](https://www.qemu.org/documentation/)
 
-* **Prioritize Running VMs:** You will rarely need all VMs running at once. Develop a habit of powering on only the VMs relevant to your current task or exercise.  
-  * **Example: Active Directory Practice:** Power on pfSense, Kali, Windows Server DC, and 1-2 Windows 10 Clients.  
-  * **Example: Web App Pentesting:** Power on pfSense, Kali, and the Docker Host VM.  
-  * **Example: MAL Network:** Power on pfSense (if internet access for samples is needed), and either the REMnux VM or FlareVM.  
-* **Monitor Resources:** Use host-level tools like htop (on Arch Linux) or virt-manager's built-in statistics to monitor CPU, RAM, and disk I/O usage. This helps identify bottlenecks and informs your VM management decisions.  
-* **Adjust Allocations:** If a specific VM consistently runs out of memory or is too slow for a particular task, consider temporarily allocating more RAM or CPU cores to it, provided other non-essential VMs are off.
+### **Learning Resources**
 
-### **5.4. Updates**
+- **OWASP Top 10**: [OWASP.org](https://owasp.org/www-project-top-ten/)
+- **Active Directory Security**: [BloodHound Documentation](https://bloodhound.readthedocs.io/)
+- **Web Application Security**: [PortSwigger Web Security Academy](https://portswigger.net/web-security)
 
-* **Host OS:** Regularly update your Arch Linux host system (sudo pacman \-Syu). This is crucial for security patches and performance improvements for your hypervisor.  
-* **Guest OSes:** Regularly update your Kali Linux, Ubuntu Server, and Windows VMs (especially the Kali attacker machine and any Docker host VMs). For intentionally vulnerable targets (like Metasploitable), you might choose to keep them unpatched for specific exercises, but be aware of the risks if they are exposed to the internet.
+---
 
-By meticulously following this comprehensive guide, you will establish a powerful, flexible, and secure virtual cybersecurity lab. This environment will serve as an excellent platform for hands-on learning, skill development, and honing your expertise in penetration testing and red teaming. Good luck with your cybersecurity journey\!
+## **9. Conclusion**
+
+This comprehensive lab environment provides a professional-grade platform for red teaming and penetration testing across network infrastructure and Active Directory environments. By leveraging AI-powered tools like Villager AI and HexStrike, combined with optimized Kali Linux VMs via PimpMyKali, you can significantly enhance your testing efficiency and capabilities.
+
+The dual-segment network architecture with pfSense firewall provides realistic enterprise network simulation while maintaining proper isolation from your host system.
+
+**Key Advantages of This Setup**:
+- ✅ **AI-Enhanced Testing**: Automated vulnerability discovery and exploit generation
+- ✅ **Comprehensive Coverage**: Web application, network, and AD security testing
+- ✅ **WebSploit Integration**: Professional web application security testing platform on Kali VM
+- ✅ **Realistic Environments**: Enterprise-grade AD and vulnerable targets
+- ✅ **Flexible Resource Management**: Adjust VM resources based on your available hardware
+- ✅ **Scalable**: Start with minimal resources and scale up as needed
+- ✅ **Secure Isolation**: Proper network isolation from host
+- ✅ **Easy Management**: Snapshot-based reset and recovery
+- ✅ **Firewall Evasion Practice**: pfSense firewall enables realistic evasion technique practice
+- ✅ **Works on Various Hardware**: Adaptable to different system configurations and resource levels
+
+**Next Steps**:
+1. **Assess Your Resources**: Check your available CPU, RAM, and disk space
+2. **Plan Your Lab**: Decide which VMs you'll deploy based on your resources
+3. **Complete Host Configuration**: Set up QEMU/KVM and libvirt (Section 1)
+4. **Set Up Lab Networks**: Create the dual-segment networks and pfSense firewall (Section 2)
+5. **Deploy Kali Linux VM**: Start with the attacker machine and AI tools (Section 3.1)
+6. **Deploy pfSense Firewall**: Set up the firewall/router for evasion practice (Section 3.2)
+7. **Deploy Target VMs**: Add Metasploitable and Windows AD targets as resources allow
+8. **Begin Practicing**: Start with scenarios that match your available resources, including firewall evasion practice
+
+**Remember**: You don't need to deploy all VMs at once. Start with what you can support and add more as you gain experience or upgrade your hardware.
+
+---
+
+**Built with ❤️ for the cybersecurity community**
+
+*Cybersecurity Lab - Where AI meets Red Teaming Excellence*
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
