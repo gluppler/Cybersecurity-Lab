@@ -1329,11 +1329,7 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
      * **Why two interfaces?**:
        - br-external: Communication with lab targets through pfSense
        - default (NAT): Internet access for AI tool API calls (Claude, Cursor, etc.)
-   - Click "Begin Installation"
-
-   - **Note**: Kali VM needs TWO network interfaces:
-   - **br-external**: For lab network (192.168.100.10)
-   - **default (NAT)**: For internet access (AI tool APIs)
+   - Click **"Begin Installation"**
 
 3. **Install Kali Linux**:
    - Follow standard installation process
@@ -1342,7 +1338,8 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
 
 4. **Post-Installation Configuration**:
 
-   - **Update System**:
+   **Update System**:
+
    ```bash
    # Update package lists
    sudo apt update
@@ -1500,11 +1497,13 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
 
    **Note**: Refer to the [villager-ai-hexstrike-integration repository](https://github.com/Yenn503/villager-ai-hexstrike-integration) for detailed configuration instructions, including API key setup for Claude, Cursor, or other AI services.
 
-   - **Install WebSploit** (Web Application Security Testing Platform):
-   ```bash
-   # WebSploit is a comprehensive web application security testing platform
-   # Visit https://websploit.org/ for latest installation instructions
+   **Install WebSploit** (Web Application Security Testing Platform):
 
+   WebSploit is a comprehensive web application security testing platform that runs in Docker containers on the Kali VM.
+
+   **Step 1: Install Docker**
+
+   ```bash
    # Check if Docker is already installed
    if command -v docker >/dev/null 2>&1; then
        echo "✓ Docker is already installed"
@@ -1521,7 +1520,11 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
            exit 1
        fi
    fi
+   ```
 
+   **Step 2: Start and Enable Docker Service**
+
+   ```bash
    # Start and enable Docker service
    sudo systemctl enable docker
    sudo systemctl start docker
@@ -1534,38 +1537,51 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
        sudo systemctl status docker
        exit 1
    fi
+   ```
 
+   **Step 3: Add User to Docker Group**
+
+   ```bash
    # Add user to docker group (requires logout/login to take effect)
    CURRENT_USER="${USER:-$(whoami)}"
    sudo usermod -aG docker "$CURRENT_USER"
    echo "✓ User added to docker group"
    echo "⚠️  You must log out and log back in for docker group to take effect"
    echo "   Or use: newgrp docker (temporary)"
+   ```
 
-   # Clone WebSploit repository
-cd ~ || exit 1
+   **Step 4: Clone WebSploit Repository**
 
+   ```bash
+   # Navigate to home directory
+   cd ~ || exit 1
+
+   # Check if repository already exists
    if [ -d "websploit" ]; then
        echo "⚠️  websploit directory already exists"
-       cd websploit
+       cd websploit || exit 1
    else
        echo "Cloning WebSploit repository..."
        if git clone https://github.com/websploit/websploit.git; then
-           echo "✓ Repository cloned"
-cd websploit || exit 1
+           echo "✓ Repository cloned successfully"
+           cd websploit || exit 1
        else
            echo "✗ Failed to clone repository"
+           echo "Check internet connection and try again"
            exit 1
        fi
    fi
+   ```
 
+   **Step 5: Start WebSploit Containers**
+
+   ```bash
    # Check for docker-compose.yml or installation instructions
    if [ -f "docker-compose.yml" ]; then
        echo "✓ Found docker-compose.yml"
        echo "Starting WebSploit containers..."
-       # Note: After logging out/in, use: docker-compose up -d
-       # Or use: newgrp docker && docker-compose up -d
-       echo "Run: docker-compose up -d (after docker group is active)"
+       echo "⚠️  Note: After logging out/in or using 'newgrp docker', run:"
+       echo "   docker-compose up -d"
    elif [ -f "README.md" ] || [ -f "INSTALL.md" ]; then
        echo "✓ Found documentation"
        echo "Please follow installation instructions in README.md or INSTALL.md"
@@ -1574,19 +1590,32 @@ cd websploit || exit 1
        echo "⚠️  No docker-compose.yml found"
        echo "Please check WebSploit documentation: https://websploit.org/"
    fi
+   ```
 
+   **Step 6: Verify Docker Access and WebSploit**
+
+   ```bash
    # Verify Docker is accessible (after group change)
    # This will work after logout/login or using newgrp docker
    if docker ps >/dev/null 2>&1; then
        echo "✓ Docker is accessible"
        docker ps
+       
+       # If WebSploit containers are running, they should appear here
+       echo "✓ Check for WebSploit containers:"
+       docker ps | grep websploit || echo "WebSploit containers not running yet"
    else
        echo "⚠️  Docker not accessible yet (group change requires logout/login)"
        echo "   Run: newgrp docker (temporary) or logout/login"
    fi
    ```
 
-   - **Configure Static IP** (Optional but recommended):
+   **Note**: Visit [WebSploit Documentation](https://websploit.org/) for the latest installation instructions and configuration details.
+
+   **Configure Static IP** (Optional but recommended):
+
+   Setting a static IP for the Kali VM ensures consistent network configuration and easier access to the VM.
+
    ```bash
    # Detect network configuration method
    # Modern Kali uses netplan (Ubuntu-style)
@@ -1596,7 +1625,7 @@ cd websploit || exit 1
        echo "Using netplan for network configuration"
 
        # Find netplan config file
-|NETPLAN_FILE=$(ls /etc/netplan/**.yaml 2>/dev/null|head -1)|
+       NETPLAN_FILE=$(ls /etc/netplan/*.yaml 2>/dev/null | head -1)
 
        if [ -n "$NETPLAN_FILE" ]; then
            echo "Found netplan config: $NETPLAN_FILE"
@@ -1726,17 +1755,17 @@ qemu-img create -f qcow2 "$DISK_PATH" "${VM_DISK_SIZE}G"
 
 # Create VM with virt-install
 virt-install \
-    - -name "$VM_NAME" \
-    - -ram "$VM_RAM" \
-    - -vcpus "$VM_CPUS" \
-    - -disk path="$DISK_PATH",format=qcow2,size="$VM_DISK_SIZE" \
-    - -cdrom "$ISO_PATH" \
-    - -network network=br-external,model=virtio \
-    - -network network=br-internal,model=virtio \
-    - -graphics vnc,listen=0.0.0.0 \
-    - -noautoconsole \
-    - -os-type generic \
-    - -os-variant generic
+    --name "$VM_NAME" \
+    --ram "$VM_RAM" \
+    --vcpus "$VM_CPUS" \
+    --disk path="$DISK_PATH",format=qcow2,size="$VM_DISK_SIZE" \
+    --cdrom "$ISO_PATH" \
+    --network network=br-external,model=virtio \
+    --network network=br-internal,model=virtio \
+    --graphics vnc,listen=0.0.0.0 \
+    --noautoconsole \
+    --os-type generic \
+    --os-variant generic
 
 echo "✓ pfSense VM created"
 echo "Connect using: virt-viewer $VM_NAME"
@@ -1764,33 +1793,40 @@ echo "Connect using: virt-viewer $VM_NAME"
    - Complete setup wizard
 
 #### **Step 4: Configure pfSense Firewall Rules**
-Access pfSense web interface: `https://192.168.200.1` (from internal network) or `https://192.168.100.1` (from external network)
 
-- **Default Login**:
+**Access pfSense Web Interface**:
+- From internal network: `https://192.168.200.1`
+- From external network: `https://192.168.100.1`
+
+**Default Login**:
 - Username: `admin`
 - Password: (the password you set during installation)
 
-- **Configure Firewall Rules for Evasion Practice**:
+**Configure Firewall Rules for Evasion Practice**:
 
 1. **LAN Rules** (Internal Network → External):
+
    - Navigate to: **Firewall → Rules → LAN**
    - **Default Rule**: Allow all traffic (for initial testing)
    - **Restrictive Rule** (for evasion practice):
-     - Block ICMP (ping)
-     - Block common ports (22, 23, 80, 443, 445, 3389)
-     - Allow only specific protocols/ports as needed
-     - Enable logging for blocked traffic
+     * Block ICMP (ping)
+     * Block common ports (22, 23, 80, 443, 445, 3389)
+     * Allow only specific protocols/ports as needed
+     * Enable logging for blocked traffic
 
 2. **WAN Rules** (External Network → Internal):
+
    - Navigate to: **Firewall → Rules → WAN**
    - **Default**: Block all incoming traffic from WAN
    - **For Testing**: Allow specific ports/protocols to practice evasion
 
 3. **NAT Configuration**:
+
    - Navigate to: **Firewall → NAT → Port Forward**
    - Configure port forwarding rules as needed for testing
 
 4. **Enable Logging**:
+
    - Navigate to: **Status → System Logs → Firewall**
    - Enable logging for all firewall rules
    - This helps track evasion attempts
@@ -1810,12 +1846,17 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
 ```
 
 #### **pfSense VM Overview**
-- **Purpose**: Firewall/router separating attacker and target networks
-- **Network Position**: Between br-external (Kali) and br-internal (targets)
-- **Evasion Practice**: Configure firewall rules to block traffic, requiring evasion techniques
-- **Realistic Scenario**: Simulates enterprise perimeter defense
 
-- **Evasion Techniques to Practice**:
+**Purpose**: Firewall/router separating attacker and target networks
+
+**Network Position**: Between br-external (Kali) and br-internal (targets)
+
+**Evasion Practice**: Configure firewall rules to block traffic, requiring evasion techniques
+
+**Realistic Scenario**: Simulates enterprise perimeter defense
+
+**Evasion Techniques to Practice**:
+
 - Packet fragmentation
 - Protocol tunneling (SSH, DNS, ICMP)
 - Traffic obfuscation
@@ -1836,7 +1877,8 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
 | **OS** | Windows 2008 R2 | Windows 2008 R2 |
 | **Internet** | ❌ Not required | ❌ Not required |
 
-- **Realistic Requirements**:
+**Realistic Requirements**:
+
 - **4 CPU cores**: Needed for running multiple vulnerable services simultaneously
 - **6 GB RAM**: Required for Windows OS and vulnerable services
 - **60 GB disk**: Space for OS and vulnerable applications
@@ -1851,7 +1893,8 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
 | **OS** | Ubuntu | Ubuntu |
 | **Internet** | ❌ Not required | ❌ Not required |
 
-- **Realistic Requirements**:
+**Realistic Requirements**:
+
 - **4 CPU cores**: Needed for running multiple vulnerable services simultaneously
 - **6 GB RAM**: Required for Ubuntu OS and vulnerable services
 - **60 GB disk**: Space for OS and vulnerable applications
@@ -1876,18 +1919,18 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
    # Navigate to a suitable directory for building VMs
    BUILD_DIR="${HOME}/metasploitable3-build"
    mkdir -p "$BUILD_DIR"
-cd "$BUILD_DIR" || exit 1
+   cd "$BUILD_DIR" || exit 1
 
    # Check if repository already exists
    if [ -d "metasploitable3" ]; then
        echo "⚠️  metasploitable3 directory already exists"
-       cd metasploitable3
+       cd metasploitable3 || exit 1
        git pull  # Update if needed
    else
        echo "Cloning Metasploitable 3 repository..."
        if git clone https://github.com/rapid7/metasploitable3.git; then
            echo "✓ Repository cloned"
-cd metasploitable3 || exit 1
+           cd metasploitable3 || exit 1
        else
            echo "✗ Failed to clone repository"
            exit 1
@@ -1901,7 +1944,7 @@ cd metasploitable3 || exit 1
    fi
 
    # Check for libvirt provider
-if vagrant plugin list | grep -q vagrant-libvirt; then
+   if vagrant plugin list | grep -q vagrant-libvirt; then
        echo "✓ vagrant-libvirt plugin is installed"
    else
        echo "✗ vagrant-libvirt plugin not found"
@@ -1937,21 +1980,23 @@ if vagrant plugin list | grep -q vagrant-libvirt; then
    # Verify VMs were created
    echo "Verifying VMs were created..."
    vagrant status
-|virsh list --all|grep metasploitable|
+   virsh list --all | grep metasploitable
    ```
 
 3. **Connect to br-internal Network**:
+
+   **Using virt-manager**:
    - Open virt-manager
    - For each Metasploitable VM:
-     * Right-click VM → "Open" → Click "i" icon (Show virtual hardware details)
-     * Select "NIC: Network interface" → Click "Remove Hardware" (if connected to wrong network)
-     * Click "Add Hardware" → "Network"
+     * Right-click VM → **Open** → Click **"i"** icon (Show virtual hardware details)
+     * Select **"NIC: Network interface"** → Click **"Remove Hardware"** (if connected to wrong network)
+     * Click **"Add Hardware"** → **"Network"**
      * **Network source**: Select **"br-internal"** (internal target network)
-     * **Device model**: Select "virtio"
-     * Click "Finish"
+     * **Device model**: Select **"virtio"**
+     * Click **"Finish"**
    - Reboot VMs to apply network changes
 
-   - **Alternative (Command Line)**:
+   **Alternative (Command Line)**:
    ```bash
    # Check current network
    virsh domiflist <metasploitable-vm-name>
@@ -1967,12 +2012,43 @@ if vagrant plugin list | grep -q vagrant-libvirt; then
    ```
 
 4. **Configure Static IPs** (Recommended):
-   - **Windows Metasploitable**: Network settings → Set static IP 192.168.200.20
-   - **Ubuntu Metasploitable**: Edit `/etc/netplan/` or `/etc/network/interfaces` → Set static IP 192.168.200.21
+
+   **Windows Metasploitable**:
+   - Open **Network Settings** in Windows
+   - Set static IP: `192.168.200.20`
+   - Subnet mask: `255.255.255.0`
+   - Gateway: `192.168.200.1` (pfSense LAN interface)
+   - DNS: `192.168.200.30` (Domain Controller) or `192.168.200.1` (pfSense)
+
+   **Ubuntu Metasploitable**:
+   - Edit network configuration:
+     ```bash
+     # For Ubuntu 18.04+ (netplan)
+     sudo nano /etc/netplan/01-netcfg.yaml
+     ```
+   - Configure static IP:
+     ```yaml
+     network:
+       version: 2
+       ethernets:
+         eth0:
+           addresses:
+             - 192.168.200.21/24
+           gateway4: 192.168.200.1
+           nameservers:
+             addresses:
+               - 192.168.200.30
+               - 192.168.200.1
+     ```
+   - Apply changes:
+     ```bash
+     sudo netplan apply
+     ```
 
 5. **Default Credentials**:
-   - **Windows**: `vagrant/vagrant`
-   - **Ubuntu**: `vagrant/vagrant`
+
+   - **Windows Metasploitable**: `vagrant/vagrant`
+   - **Ubuntu Metasploitable**: `vagrant/vagrant`
 
 ### **3.3. Active Directory Environment**
 #### **Windows Server 2019 Domain Controller**
@@ -1984,8 +2060,6 @@ if vagrant plugin list | grep -q vagrant-libvirt; then
 | **Network** | br-internal (Static IP: 192.168.200.30) | br-internal |
 | **OS** | Windows Server 2019 Datacenter | Windows Server 2019 Datacenter |
 | **Internet** | ❌ Not required | ❌ Not required |
-
-**Realistic Requirements**:
 
 **Realistic Requirements**:
 
