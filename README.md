@@ -239,7 +239,7 @@ which virsh
 
 ```bash
 # Check if packages are installed
-|pacman -Q qemu virt-manager libvirt 2>/dev/null && echo "✓ Packages installed"||echo "✗ Installation failed"|
+pacman -Q qemu virt-manager libvirt 2>/dev/null && echo "✓ Packages installed" || echo "✗ Installation failed"
 
 ```
 
@@ -263,7 +263,7 @@ which virsh
 
 ```bash
 # Check if packages are installed
-|dpkg -l|grep -E '(qemu|virt-manager|libvirt)' && echo "✓ Packages installed"||echo "✗ Installation failed"|
+dpkg -l | grep -E '(qemu|virt-manager|libvirt)' && echo "✓ Packages installed" || echo "✗ Installation failed"
 
 ```
 
@@ -302,7 +302,7 @@ CURRENT_USER="${USER:-$(whoami)}"
 sudo usermod -aG libvirt,kvm "$CURRENT_USER"
 
 # Verify groups were added (will show after logout/login)
-|groups "$CURRENT_USER"|grep -E '(libvirt|kvm)' && echo "✓ Groups added"||echo "✗ Groups not found (will appear after logout/login)"|
+groups "$CURRENT_USER" | grep -E '(libvirt|kvm)' && echo "✓ Groups added" || echo "✗ Groups not found (will appear after logout/login)"
 
 # Note: Group changes require logout/login to take effect
 # Alternative: Use newgrp to apply changes in current session (temporary)
@@ -316,7 +316,7 @@ sudo usermod -aG libvirt,kvm "$CURRENT_USER"
 
 ```bash
 # After logging back in, verify groups
-|groups|grep -E '(libvirt|kvm)' && echo "✓ User has virtualization groups"||echo "✗ Groups not active - logout/login required"|
+groups | grep -E '(libvirt|kvm)' && echo "✓ User has virtualization groups" || echo "✗ Groups not active - logout/login required"
 
 # Test libvirt access (should work without sudo)
 |virsh list --all 2>&1|head -1|
@@ -357,13 +357,13 @@ fi
 
 # Load modules if not loaded (usually auto-loaded, but verify)
 # For Intel:
-|if ! lsmod|grep -q kvm_intel; then|
+if ! lsmod | grep -q kvm_intel; then
     echo "Loading KVM Intel module..."
     sudo modprobe kvm_intel
 fi
 
 # For AMD:
-|if ! lsmod|grep -q kvm_amd; then|
+if ! lsmod | grep -q kvm_amd; then
     echo "Loading KVM AMD module..."
     sudo modprobe kvm_amd
 fi
@@ -501,7 +501,7 @@ cat /etc/modprobe.d/kvm-intel.conf
 
 # Unload and reload module (requires no running VMs)
 # First, check if any VMs are running
-|if virsh list --state-running 2>/dev/null|grep -q running; then|
+if virsh list --state-running 2>/dev/null | grep -q running; then
     echo "⚠️  VMs are running. Shut them down first, then run:"
     echo "   sudo modprobe -r kvm_intel && sudo modprobe kvm_intel nested=1"
 else
@@ -521,7 +521,7 @@ fi
 cat /etc/modprobe.d/kvm-amd.conf
 
 # Unload and reload module (requires no running VMs)
-|if virsh list --state-running 2>/dev/null|grep -q running; then|
+if virsh list --state-running 2>/dev/null | grep -q running; then
     echo "⚠️  VMs are running. Shut them down first, then run:"
     echo "   sudo modprobe -r kvm_amd && sudo modprobe kvm_amd nested=1"
 else
@@ -537,7 +537,7 @@ fi
 # For Intel:
 if [ -f /sys/module/kvm_intel/parameters/nested ]; then
     NESTED=$(cat /sys/module/kvm_intel/parameters/nested)
-|if [ "$NESTED" = "Y" ]||[ "$NESTED" = "1" ]; then|
+    if [ "$NESTED" = "Y" ] || [ "$NESTED" = "1" ]; then
         echo "✓ Nested virtualization enabled for Intel"
     else
         echo "✗ Nested virtualization not enabled"
@@ -547,7 +547,7 @@ fi
 # For AMD:
 if [ -f /sys/module/kvm_amd/parameters/nested ]; then
     NESTED=$(cat /sys/module/kvm_amd/parameters/nested)
-|if [ "$NESTED" = "Y" ]||[ "$NESTED" = "1" ]; then|
+    if [ "$NESTED" = "Y" ] || [ "$NESTED" = "1" ]; then
         echo "✓ Nested virtualization enabled for AMD"
     else
         echo "✗ Nested virtualization not enabled"
@@ -822,7 +822,7 @@ echo "=== Listing all networks ==="
 virsh net-list --all
 
 # Verify external network
-|if virsh net-list --all|grep -q "br-external"; then|
+if virsh net-list --all | grep -q "br-external"; then
     echo "✓ External network (br-external) is listed"
     virsh net-info br-external
 else
@@ -830,7 +830,7 @@ else
 fi
 
 # Verify internal network
-|if virsh net-list --all|grep -q "br-internal"; then|
+if virsh net-list --all | grep -q "br-internal"; then
     echo "✓ Internal network (br-internal) is listed"
     virsh net-info br-internal
 else
@@ -903,7 +903,7 @@ verify_network() {
     echo "=== Verifying Network: $NETWORK_NAME ==="
 
     # Check if network is listed
-|if virsh net-list --all|grep -q "$NETWORK_NAME"; then|
+if virsh net-list --all | grep -q "$NETWORK_NAME"; then
         echo "✓ Network '$NETWORK_NAME' is listed"
     else
         echo "✗ Network '$NETWORK_NAME' not found"
@@ -914,7 +914,7 @@ verify_network() {
     virsh net-info "$NETWORK_NAME"
 
     # Verify network is active
-|if virsh net-info "$NETWORK_NAME"|grep -q "Active:.*yes"; then|
+if virsh net-info "$NETWORK_NAME" | grep -q "Active:.*yes"; then
         echo "✓ Network is active"
     else
         echo "✗ Network is not active - starting..."
@@ -979,7 +979,7 @@ if virsh net-info "$NETWORK_NAME" >/dev/null 2>&1; then
     echo "✓ Network '$NETWORK_NAME' exists"
 
     # Check if active
-|if virsh net-info "$NETWORK_NAME"|grep -q "Active:.*yes"; then|
+if virsh net-info "$NETWORK_NAME" | grep -q "Active:.*yes"; then
         echo "✓ Network is active"
     else
         echo "✗ Network is not active - starting it..."
@@ -1320,13 +1320,13 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
    - **Before finishing**: Check "Customize configuration before install"
    - **Network Configuration** (Critical Step):
      * Click "Add Hardware" → "Network"
-     ** **First Interface**: Select **"br-external"** network (for lab network)
+     * **First Interface**: Select **"br-external"** network (for lab network)
        - Network model: Select **"virtio"** for best performance
        - Static IP will be: 192.168.100.10
-     ** **Second Interface**: Select **"default"** network (for internet access)
+     * **Second Interface**: Select **"default"** network (for internet access)
        - This provides NAT internet access for AI tool API calls
        - Network model: Select **"virtio"** for best performance
-     ** **Why two interfaces?**:
+     * **Why two interfaces?**:
        - br-external: Communication with lab targets through pfSense
        - default (NAT): Internet access for AI tool API calls (Claude, Cursor, etc.)
    - Click "Begin Installation"
@@ -1359,11 +1359,20 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
    fi
    ```
 
-   - **Install PimpMyKali** (Essential for Kali VM optimization):
+   **Install PimpMyKali** (Essential for Kali VM optimization):
+
+   PimpMyKali fixes common issues with Kali Linux tools and optimizes the system for penetration testing.
+
+   **Step 1: Navigate to Home Directory**
+
    ```bash
    # Navigate to home directory
-|cd ~||exit 1|
+   cd ~ || exit 1
+   ```
 
+   **Step 2: Clone PimpMyKali Repository**
+
+   ```bash
    # Check if pimpmykali directory already exists
    if [ -d "pimpmykali" ]; then
        echo "⚠️  pimpmykali directory already exists"
@@ -1372,7 +1381,7 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
        if [[ $REPLY =~ ^[Yy]$ ]]; then
            rm -rf pimpmykali
        else
-           cd pimpmykali
+           cd pimpmykali || exit 1
        fi
    fi
 
@@ -1380,74 +1389,116 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
    if [ ! -d "pimpmykali" ]; then
        echo "Cloning PimpMyKali repository..."
        if git clone https://github.com/Dewalt-arch/pimpmykali.git; then
-           echo "✓ Repository cloned"
-|cd pimpmykali||exit 1|
+           echo "✓ Repository cloned successfully"
+           cd pimpmykali || exit 1
        else
            echo "✗ Failed to clone repository"
+           echo "Check internet connection and try again"
            exit 1
        fi
    fi
-
-   # Verify script exists and is executable
-   if [ -f "pimpmykali.sh" ]; then
-       # Make script executable (if not already)
-       chmod +x pimpmykali.sh
-       echo "✓ Running PimpMyKali setup..."
-       echo "Select menu option 'N' for new VM setup when prompted"
-       sudo ./pimpmykali.sh
-   else
-       echo "✗ pimpmykali.sh not found"
-       exit 1
-   fi
    ```
 
-   - **Install Villager AI + HexStrike Integration**:
+   **Step 3: Run PimpMyKali Setup**
+
+   ```bash
+   # Verify script exists
+   if [ ! -f "pimpmykali.sh" ]; then
+       echo "✗ pimpmykali.sh not found"
+       echo "Current directory: $(pwd)"
+       exit 1
+   fi
+
+   # Make script executable (if not already)
+   chmod +x pimpmykali.sh
+
+   # Run PimpMyKali setup
+   echo "✓ Running PimpMyKali setup..."
+   echo "⚠️  IMPORTANT: When prompted, select menu option 'N' for new VM setup"
+   sudo ./pimpmykali.sh
+   ```
+
+   **What PimpMyKali Does**:
+
+   - Fixes common tool issues and dependencies
+   - Optimizes system configuration
+   - Updates tool configurations
+   - Fixes permission issues
+   - Sets up proper environment variables
+
+   **Note**: After running PimpMyKali, you may need to restart your terminal or log out and back in for some changes to take effect.
+
+   **Install Villager AI + HexStrike Integration**:
+
+   **Step 1: Navigate to Home Directory**
+
    ```bash
    # Navigate to home directory
-|cd ~||exit 1|
+   cd ~ || exit 1
+   ```
 
+   **Step 2: Clone Repository**
+
+   ```bash
    # Check if directory already exists
    if [ -d "villager-ai-hexstrike-integration" ]; then
        echo "⚠️  villager-ai-hexstrike-integration directory already exists"
-       cd villager-ai-hexstrike-integration
+       cd villager-ai-hexstrike-integration || exit 1
    else
        echo "Cloning Villager AI + HexStrike integration..."
        if git clone https://github.com/Yenn503/villager-ai-hexstrike-integration.git; then
-           echo "✓ Repository cloned"
-|cd villager-ai-hexstrike-integration||exit 1|
+           echo "✓ Repository cloned successfully"
+           cd villager-ai-hexstrike-integration || exit 1
        else
            echo "✗ Failed to clone repository"
+           echo "Check internet connection and try again"
            exit 1
        fi
    fi
+   ```
 
+   **Step 3: Run Setup Script**
+
+   ```bash
    # Check if setup script exists
    if [ -f "scripts/setup.sh" ]; then
        chmod +x scripts/setup.sh
-       echo "Running setup script..."
+       echo "✓ Running setup script..."
        ./scripts/setup.sh
    else
-       echo "⚠️  setup.sh not found, checking for alternative setup methods"
+       echo "⚠️  setup.sh not found"
+       echo "Check repository structure and documentation"
    fi
+   ```
 
+   **Step 4: Start Villager AI Framework**
+
+   ```bash
    # Check if start script exists
    if [ -f "scripts/start_villager_proper.sh" ]; then
        chmod +x scripts/start_villager_proper.sh
-       echo "Starting Villager AI framework..."
+       echo "✓ Starting Villager AI framework..."
        ./scripts/start_villager_proper.sh
    else
        echo "⚠️  start_villager_proper.sh not found"
-   fi
-
-   # Verify installation
-   if [ -f "scripts/test_villager_setup.sh" ]; then
-       chmod +x scripts/test_villager_setup.sh
-       echo "Running verification tests..."
-       ./scripts/test_villager_setup.sh
-   else
-       echo "⚠️  test_villager_setup.sh not found"
+       echo "Check repository documentation for startup instructions"
    fi
    ```
+
+   **Step 5: Verify Installation (Optional)**
+
+   ```bash
+   # Check if verification script exists
+   if [ -f "scripts/test_villager_setup.sh" ]; then
+       chmod +x scripts/test_villager_setup.sh
+       echo "✓ Running verification tests..."
+       ./scripts/test_villager_setup.sh
+   else
+       echo "⚠️  test_villager_setup.sh not found (verification script optional)"
+   fi
+   ```
+
+   **Note**: Refer to the [villager-ai-hexstrike-integration repository](https://github.com/Yenn503/villager-ai-hexstrike-integration) for detailed configuration instructions, including API key setup for Claude, Cursor, or other AI services.
 
    - **Install WebSploit** (Web Application Security Testing Platform):
    ```bash
@@ -1492,7 +1543,7 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
    echo "   Or use: newgrp docker (temporary)"
 
    # Clone WebSploit repository
-|cd ~||exit 1|
+cd ~ || exit 1
 
    if [ -d "websploit" ]; then
        echo "⚠️  websploit directory already exists"
@@ -1501,7 +1552,7 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
        echo "Cloning WebSploit repository..."
        if git clone https://github.com/websploit/websploit.git; then
            echo "✓ Repository cloned"
-|cd websploit||exit 1|
+cd websploit || exit 1
        else
            echo "✗ Failed to clone repository"
            exit 1
@@ -1515,7 +1566,7 @@ virsh attach-interface <vm-name> --type network --source br-lab --model virtio -
        # Note: After logging out/in, use: docker-compose up -d
        # Or use: newgrp docker && docker-compose up -d
        echo "Run: docker-compose up -d (after docker group is active)"
-|elif [ -f "README.md" ]||[ -f "INSTALL.md" ]; then|
+   elif [ -f "README.md" ] || [ -f "INSTALL.md" ]; then
        echo "✓ Found documentation"
        echo "Please follow installation instructions in README.md or INSTALL.md"
        echo "Visit https://websploit.org/ for official documentation"
@@ -1825,7 +1876,7 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
    # Navigate to a suitable directory for building VMs
    BUILD_DIR="${HOME}/metasploitable3-build"
    mkdir -p "$BUILD_DIR"
-|cd "$BUILD_DIR"||exit 1|
+cd "$BUILD_DIR" || exit 1
 
    # Check if repository already exists
    if [ -d "metasploitable3" ]; then
@@ -1836,7 +1887,7 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
        echo "Cloning Metasploitable 3 repository..."
        if git clone https://github.com/rapid7/metasploitable3.git; then
            echo "✓ Repository cloned"
-|cd metasploitable3||exit 1|
+cd metasploitable3 || exit 1
        else
            echo "✗ Failed to clone repository"
            exit 1
@@ -1850,7 +1901,7 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
    fi
 
    # Check for libvirt provider
-|if vagrant plugin list|grep -q vagrant-libvirt; then|
+if vagrant plugin list | grep -q vagrant-libvirt; then
        echo "✓ vagrant-libvirt plugin is installed"
    else
        echo "✗ vagrant-libvirt plugin not found"
@@ -1895,8 +1946,8 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
      * Right-click VM → "Open" → Click "i" icon (Show virtual hardware details)
      * Select "NIC: Network interface" → Click "Remove Hardware" (if connected to wrong network)
      * Click "Add Hardware" → "Network"
-     ** **Network source**: Select **"br-internal"** (internal target network)
-     ** **Device model**: Select "virtio"
+     * **Network source**: Select **"br-internal"** (internal target network)
+     * **Device model**: Select "virtio"
      * Click "Finish"
    - Reboot VMs to apply network changes
 
@@ -1934,22 +1985,47 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
 | **OS** | Windows Server 2019 Datacenter | Windows Server 2019 Datacenter |
 | **Internet** | ❌ Not required | ❌ Not required |
 
-- **Realistic Requirements**:
+**Realistic Requirements**:
+
+**Realistic Requirements**:
+
 - **4 CPU cores**: Needed for Active Directory services, DNS, DHCP, and domain operations
 - **8 GB RAM**: Required for Windows Server OS and AD services (minimum 4 GB, but 8 GB recommended)
 - **100 GB disk**: Space for OS, AD database, logs, and system files
 
-- **Configuration Steps**:
+**Configuration Steps**:
 
 1. **Install Windows Server 2019**:
-   - Download evaluation ISO from Microsoft
-   - Create VM in virt-manager with above specifications
-   - Select "Windows Server 2019 Datacenter (Desktop Experience)"
-   - **Network Configuration** (Critical):
-     * Before finishing installation, check "Customize configuration before install"
-     ** In network settings: Select **"br-internal"** network (internal target network)
-     ** Network model: Select **"virtio"** (requires VirtIO drivers)
-   - Complete installation
+
+   **Download ISO**:
+   - Visit [Microsoft Evaluation Center](https://www.microsoft.com/en-us/evalcenter/evaluate-windows-server-2019)
+   - Download Windows Server 2019 Datacenter evaluation ISO
+   - Save to a location accessible from your host system
+
+   **Create VM in virt-manager**:
+   ```bash
+   # Open virt-manager
+   virt-manager
+   ```
+   - Click **Create a new virtual machine**
+   - Select **Local install media (ISO image or CDROM)**
+   - Browse and select Windows Server 2019 ISO
+   - Choose **Windows** → **Windows Server 2019**
+   - Allocate resources: **4 CPU cores, 8 GB RAM, 100 GB disk**
+   - **Before finishing**: Check **"Customize configuration before install"**
+
+   **Network Configuration** (Critical):
+   - Click **Add Hardware** → **Network**
+   - **Network source**: Select **"br-internal"** network (internal target network)
+   - **Device model**: Select **"virtio"** (requires VirtIO drivers)
+   - Click **Finish**
+
+   **Complete Installation**:
+   - Click **Begin Installation**
+   - Follow Windows Server installation wizard
+   - Select **Windows Server 2019 Datacenter (Desktop Experience)**
+   - Complete installation and set administrator password
+   - Reboot when prompted
 
 2. **Install VirtIO Drivers** (Essential for KVM performance):
    ```bash
@@ -1968,7 +2044,7 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
 
        # Verify file was downloaded and has content
        if [ -f "$VIRTIO_FILE" ] && [ -s "$VIRTIO_FILE" ]; then
-|FILE_SIZE=$(du -h "$VIRTIO_FILE"|cut -f1)|
+           FILE_SIZE=$(du -h "$VIRTIO_FILE" | cut -f1)
            echo "✓ File size: $FILE_SIZE"
            echo "✓ Ready to attach to Windows VM"
        else
@@ -1981,42 +2057,84 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
        exit 1
    fi
 
-   # Note: File location is $HOME/Downloads/virtio-win.iso
-   # In virt-manager:
-   #   1. Shut down Windows VM
-   #   2. Open VM details → Add Hardware → Storage
-   #   3. Select "Select or create custom storage" → Browse
-   #   4. Navigate to $HOME/Downloads/virtio-win.iso
-   #   5. Device type: CDROM
-   #   6. Start VM
-   #   7. In Windows: Open CD drive and run virtio-win-gt-x64.msi
    ```
 
+   **Attach VirtIO ISO to Windows Server VM**:
+
+   **In virt-manager**:
+   - Shut down Windows Server VM (if running)
+   - Open VM details → **Add Hardware** → **Storage**
+   - Select **Select or create custom storage** → Browse
+   - Navigate to `$HOME/Downloads/virtio-win.iso`
+   - Device type: **CDROM**
+   - Click **Finish**
+
+   **In Windows Server VM**:
+   - Start the VM
+   - Open **File Explorer** → **This PC**
+   - Open the CD drive (virtio-win)
+   - Run `virtio-win-gt-x64.msi` (or appropriate version for your architecture)
+   - Follow the installation wizard
+   - Reboot VM after installation
+
 3. **Configure Static IP**:
-   - Open Network Settings
-   - Set IP: `192.168.200.30`
-   - Subnet: `255.255.255.0`
-   - Gateway: `192.168.100.1`
-   - DNS: `127.0.0.1` (will change after AD install)
+
+   Configure network settings in Windows:
+
+   - Open **Network Settings** (Settings → Network & Internet → Ethernet)
+   - Click on the network adapter
+   - Click **Edit** under IP settings
+   - Select **Manual**
+   - Configure:
+     * **IP address**: `192.168.200.30`
+     * **Subnet mask**: `255.255.255.0`
+     * **Gateway**: `192.168.200.1` (pfSense LAN interface)
+     * **DNS**: `127.0.0.1` (will change to `192.168.200.30` after AD install)
+   - Click **Save**
 
 4. **Install Active Directory Domain Services**:
-   - Open Server Manager
-   - Add Roles and Features
-   - Select: **Active Directory Domain Services**, **DNS Server**, **DHCP Server**
-   - Complete installation
+
+   - Open **Server Manager**
+   - Click **Add Roles and Features**
+   - Follow the wizard:
+     * Select **Role-based or feature-based installation**
+     * Select the current server
+     * Check the following roles:
+       - **Active Directory Domain Services**
+       - **DNS Server**
+       - **DHCP Server** (optional, but recommended)
+     * Click **Next** through remaining steps
+     * Click **Install**
+   - Wait for installation to complete
 
 5. **Promote to Domain Controller**:
-   - Click notification flag in Server Manager
-   - Select "Promote this server to a domain controller"
-   - Choose "Add a new forest"
-   - Domain name: `pentestlab.local`
-   - Set Directory Services Restore Mode (DSRM) password
-   - Complete promotion (server will reboot)
+
+   - In **Server Manager**, click the notification flag (yellow triangle)
+   - Click **Promote this server to a domain controller**
+   - In the **Deployment Configuration**:
+     * Select **Add a new forest**
+     * Enter **Root domain name**: `pentestlab.local`
+   - In **Domain Controller Options**:
+     * Set **Directory Services Restore Mode (DSRM) password** (remember this!)
+     * Leave other options as default
+   - Complete the wizard and click **Promote**
+   - Server will automatically reboot after promotion
 
 6. **Post-Promotion Configuration**:
-   - After reboot, change DNS to `127.0.0.1` (localhost)
-   - Create test users and groups in Active Directory Users and Computers
-   - Example users: `john.doe`, `jane.smith`, `svc_web`, `admin_user`
+
+   - After reboot, log in as domain administrator
+   - **Configure DNS**:
+     * Open **Network Settings**
+     * Change DNS to `127.0.0.1` (localhost) or `192.168.200.30` (self)
+   - **Create Test Users and Groups**:
+     * Open **Active Directory Users and Computers** (dsa.msc)
+     * Navigate to `pentestlab.local` → `Users`
+     * Create test users:
+       - `john.doe` (regular user)
+       - `jane.smith` (regular user)
+       - `svc_web` (service account)
+       - `admin_user` (administrative user)
+     * Create test groups as needed for practice scenarios
 
 #### **Windows 10 Clients (x2)**
 | Resource | Realistic Allocation (each) | Minimum (if resources limited) |
@@ -2028,44 +2146,114 @@ nmap -p 22,80,443 192.168.200.20  # Should show filtered/blocked ports
 | **OS** | Windows 10 | Windows 10 |
 | **Internet** | ❌ Not required | ❌ Not required |
 
-- **Realistic Requirements** (per client):
+**Realistic Requirements** (per client):
+
 - **2 CPU cores**: Sufficient for Windows 10 client operations
 - **4 GB RAM**: Adequate for Windows 10 and basic applications (minimum 3 GB if resources limited)
 - **60 GB disk**: Space for OS and basic applications
 
-- **Note**: You can start with just one Windows 10 client if resources are limited. Add the second client later when you have more resources available.
+**Note**: You can start with just one Windows 10 client if resources are limited. Add the second client later when you have more resources available.
 
-- **Configuration Steps**:
+**Configuration Steps**:
 
 1. **Install Windows 10**:
-   - Download evaluation ISO from Microsoft
-   - Create VM in virt-manager
-   - **Network Configuration** (Critical):
-     * Before finishing, check "Customize configuration before install"
-     ** In network settings: Select **"br-internal"** network (internal target network)
-     ** Network model: Select **"virtio"** (requires VirtIO drivers)
-   - Complete installation
+
+   **Download ISO**:
+   - Visit [Microsoft Evaluation Center](https://www.microsoft.com/en-us/evalcenter/evaluate-windows-10-enterprise)
+   - Download Windows 10 Enterprise evaluation ISO
+   - Save to a location accessible from your host system
+
+   **Create VM in virt-manager**:
+   ```bash
+   # Open virt-manager
+   virt-manager
+   ```
+   - Click **Create a new virtual machine**
+   - Select **Local install media (ISO image or CDROM)**
+   - Browse and select Windows 10 ISO
+   - Choose **Windows** → **Windows 10**
+   - Allocate resources: **2 CPU cores, 4 GB RAM, 60 GB disk** (per client)
+   - **Before finishing**: Check **"Customize configuration before install"**
+
+   **Network Configuration** (Critical):
+   - Click **Add Hardware** → **Network**
+   - **Network source**: Select **"br-internal"** network (internal target network)
+   - **Device model**: Select **"virtio"** (requires VirtIO drivers)
+   - Click **Finish**
+
+   **Complete Installation**:
+   - Click **Begin Installation**
+   - Follow Windows 10 installation wizard
+   - Complete installation and set up local user account
+   - Reboot when prompted
 
 2. **Install VirtIO Drivers**:
-   - Attach virtio-win.iso to VM
-   - Install drivers from CD drive
+
+   **On Host** (if not already done for Windows Server):
+   ```bash
+   # Download virtio-win.iso (same file used for Windows Server)
+   # Location: $HOME/Downloads/virtio-win.iso
+   ```
+
+   **In virt-manager**:
+   - Shut down Windows 10 VM (if running)
+   - Open VM details → **Add Hardware** → **Storage**
+   - Select **Select or create custom storage** → Browse
+   - Navigate to `$HOME/Downloads/virtio-win.iso`
+   - Device type: **CDROM**
+   - Click **Finish**
+
+   **In Windows 10 VM**:
+   - Start the VM
+   - Open **File Explorer** → **This PC**
+   - Open the CD drive (virtio-win)
+   - Run `virtio-win-gt-x64.msi` (or appropriate version for your architecture)
+   - Follow the installation wizard
+   - Reboot VM after installation
 
 3. **Configure Network**:
-   - Set static IP: `192.168.200.31` (first client) or `192.168.200.32` (second client)
-   - Subnet: `255.255.255.0`
-   - Gateway: `192.168.100.1`
-   - **DNS**: `192.168.200.30` (Domain Controller IP - critical!)
+
+   Configure network settings in Windows:
+
+   - Open **Network Settings** (Settings → Network & Internet → Ethernet)
+   - Click on the network adapter
+   - Click **Edit** under IP settings
+   - Select **Manual**
+   - Configure:
+     * **IP address**: `192.168.200.31` (first client) or `192.168.200.32` (second client)
+     * **Subnet mask**: `255.255.255.0`
+     * **Gateway**: `192.168.200.1` (pfSense LAN interface)
+     * **DNS**: `192.168.200.30` (Domain Controller IP - **critical for domain join!**)
+   - Click **Save**
 
 4. **Join Domain**:
-   - Right-click "This PC" → Properties
-   - Click "Change settings" → "Change"
-   - Select "Domain" → Enter: `pentestlab.local`
-   - Enter domain administrator credentials
-   - Reboot to complete domain join
+
+   - Right-click **This PC** → **Properties**
+   - Click **Change settings** → **Change**
+   - Under **Computer Name/Domain Changes**:
+     * Select **Domain**
+     * Enter domain name: `pentestlab.local`
+     * Click **OK**
+   - Enter domain administrator credentials:
+     * Username: `pentestlab\Administrator` (or your domain admin account)
+     * Password: (DSRM password or domain admin password)
+   - Click **OK** → **OK**
+   - Reboot when prompted to complete domain join
 
 5. **Verify Domain Join**:
-   - Log in with domain user: `pentestlab\john.doe`
-   - Verify domain membership: `whoami /all`
+
+   - After reboot, log in with a domain user account
+   - Example: `pentestlab\john.doe` (if you created this user)
+   - Verify domain membership:
+     ```cmd
+     whoami /all
+     ```
+   - Should show domain: `pentestlab\john.doe`
+   - Verify domain controller connectivity:
+     ```cmd
+     nslookup pentestlab.local
+     ```
+   - Should resolve to `192.168.200.30` (Domain Controller)
 
 #### **Active Directory Lab Topology**
 
